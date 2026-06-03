@@ -392,3 +392,120 @@ export async function getSurgeryConfirmationByPatient({
     return []
   }
 }
+
+// ─── Cotizaciones del paciente ─────────────────────────────────────
+export interface PatientQuote {
+  id: string
+  subject: string
+  quote_stage: string
+  created_time: string | null
+  valid_until: string | null
+  grand_total: number | null
+  sub_total: number | null
+  discount: number | null
+  tax: number | null
+  discount_reason: string | null
+  surgical_plan: string | null
+  surgical_plan_2nd: string | null
+  hotel_nights_before: number | null
+  hospital_nights: number | null
+  recovery_house_nights: number | null
+  procedures: QuoteProcedure[]
+}
+
+export interface QuoteProcedure {
+  product_name: string | null
+  product_type: string | null
+  surgical_plan_price: number | null
+  quantity: number | null
+  discount: number | null
+  net_total: number | null
+}
+
+const QUOTE_FIELDS = [
+  'Subject', 'Quote_Stage', 'Created_Time', 'Valid_Until',
+  'Grand_Total', 'Sub_Total', 'Discount', 'Tax', 'Adjustment',
+  'Discount_Reason', 'Surgical_Plan', 'Surgical_Plan_2nd_phase',
+  'Hotel_Nights_Before_Surgery', 'Hospital_Nights', 'Recovery_House_Nights',
+].join(',')
+
+// Intenta ambos nombres de related list (Leads usa "Quotes.", Contacts usa "Quotes")
+async function fetchQuotesFromModule(
+  module: 'Leads' | 'Contacts',
+  recordId: string
+): Promise<any[]> {
+  // Intenta primero sin punto, luego con punto como fallback
+  for (const relatedList of ['Quotes', 'Quotes.']) {
+    try {
+      const res = await get(
+        `/${module}/${recordId}/${relatedList}?fields=${QUOTE_FIELDS}&sort_by=Created_Time&sort_order=desc`
+      )
+      if (res.data && res.data.length >= 0) return res.data
+    } catch { continue }
+  }
+  return []
+}
+
+function mapQuote(q: any): PatientQuote {
+  // Subform de procedimientos — API name puede ser Quoted_Items o Procedures
+  const rawProcedures: any[] =
+    q.Quoted_Items ?? q.Procedures ?? q.Product_Details ?? []
+
+  return {
+    id: q.id,
+    subject: q.Subject ?? 'Cotización',
+    quote_stage: q.Quote_Stage ?? 'Draft',
+    created_time: q.Created_Time ?? null,
+    valid_until: q.Valid_Until ?? null,
+    grand_total: q.Grand_Total ?? null,
+    sub_total: q.Sub_Total ?? null,
+    discount: q.Discount ?? null,
+    tax: q.Tax ?? null,
+    discount_reason: q.Discount_Reason ?? null,
+    surgical_plan: q.Surgical_Plan ?? null,
+    surgical_plan_2nd: q.Surgical_Plan_2nd_phase ?? null,
+    hotel_nights_before: q.Hotel_Nights_Before_Surgery ?? null,
+    hospital_nights: q.Hospital_Nights ?? null,
+    recovery_house_nights: q.Recovery_House_Nights ?? null,
+    procedures: rawProcedures.map((p: any) => ({
+      product_name: p.Product_Name?.name ?? p.product?.name ?? p.Product_Name ?? null,
+      product_type: p.Product_Type ?? null,
+      surgical_plan_price: p.Surgical_Plan_Price ?? null,
+      quantity: p.Quantity ?? null,
+      discount: p.Discount ?? null,
+      net_total: p.Net_Total ?? null,
+    })),
+  }
+}
+
+const VISIBLE_STAGES = new Set(['Sent', 'Follow-up', 'Approved', 'Deposit Paid', 'Surgery_Date'])
+
+export async function getPatientQuotes({
+  lead_id,
+  contact_id,
+}: {
+  lead_id: string | null
+  contact_id: string | null
+}): Promise<PatientQuote[]> {
+  const results: PatientQuote[] = []
+  const seen = new Set<string>()
+
+  const addQuotes = (raw: any[]) => {
+    for (const q of raw) {
+      if (!seen.has(q.id)) {
+        seen.add(q.id)
+        results.push(mapQuote(q))
+      }
+    }
+  }
+
+  if (contact_id) addQuotes(await fetchQuotesFromModule('Contacts', contact_id))
+  if (lead_id)    addQuotes(await fetchQuotesFromModule('Leads', lead_id))
+
+  // Ordena por fecha descendente y filtra fuera los Draft
+  return results
+    .filter((q) => q.quote_stage !== 'Draft')
+    .sort((a, b) =>
+      new Date(b.created_time ?? 0).getTime() - new Date(a.created_time ?? 0).getTime()
+    )
+}
