@@ -88,20 +88,38 @@ export async function getPatientByEmail(email: string): Promise<PatientProfile |
     const c = contacts[0]
     const deal = await getDealByContactId(c.id)
 
+    // Si no hay Deal, busca el Lead original para obtener su stage
+    let leadStage: string | null = null
+    let leadId: string | null = null
+    if (!deal) {
+      const leads = await searchModule('Leads', email)
+      const activeLead = leads.find((l: any) => !l.Converted) ?? null
+      if (activeLead) {
+        leadStage = activeLead.Lead_Status ?? null
+        leadId    = activeLead.id
+      }
+    }
+
+    const procedures = deal ? [] : (await searchModule('Leads', email))
+      .filter((l: any) => !l.Converted)
+      .flatMap((l: any) => [l.Procedure_Primary, l.Procedures_Secondary, l.Secondary_Procedures])
+      .filter(Boolean)
+
     return {
       type: 'contact',
-      lead_id: null,
+      lead_id: leadId,
       contact_id: c.id,
       deal_id: deal?.id ?? null,
       first_name: c.First_Name ?? '',
       last_name: c.Last_Name ?? '',
       email: c.Email ?? email,
       mobile: c.Mobile ?? c.Phone ?? '',
-      procedures: [],
+      procedures,
       surgery_plan: deal?.Surgery_Plan ?? null,
-      lead_stage: null,
+      // Si no hay Deal, usamos el lead_stage del Lead activo
+      lead_stage: deal ? null : leadStage,
       deal_stage: deal?.Stage ?? null,
-      converted: true,
+      converted: !!deal,           // "convertido" solo si tiene Deal real
       surgery_date: deal?.Surgery_Date ?? null,
       surgeon: deal?.Surgeon ?? null,
       coordinator: deal?.Owner?.name ?? null,
