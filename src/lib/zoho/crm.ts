@@ -115,15 +115,15 @@ export async function getPatientByEmail(email: string): Promise<PatientProfile |
       email: c.Email ?? email,
       mobile: c.Mobile ?? c.Phone ?? '',
       procedures,
-      surgery_plan: deal?.Surgery_Plan ?? null,
+      surgery_plan: deal?.Surgery_Plan?.name ?? (typeof deal?.Surgery_Plan === 'string' ? deal?.Surgery_Plan : null),
       // Si no hay Deal, usamos el lead_stage del Lead activo
       lead_stage: deal ? null : leadStage,
       deal_stage: deal?.Stage ?? null,
-      converted: !!deal,           // "convertido" solo si tiene Deal real
+      converted: !!deal, // "convertido" solo si tiene Deal real
       surgery_date: deal?.Surgery_Date ?? null,
-      surgeon: deal?.Surgeon ?? null,
-      coordinator: deal?.Owner?.name ?? null,
-      brand: deal?.Account_Name ?? null,
+      surgeon: deal?.Surgeon?.name      ?? (typeof deal?.Surgeon === 'string'      ? deal?.Surgeon      : null),
+      coordinator: deal?.Owner?.name        ?? null,
+      brand: deal?.Account_Name?.name ?? (typeof deal?.Account_Name === 'string' ? deal?.Account_Name : null),
       amount: deal?.Amount ?? null,
     }
   }
@@ -156,14 +156,14 @@ export async function getPatientByEmail(email: string): Promise<PatientProfile |
       email: lead.Email ?? email,
       mobile: lead.Mobile ?? '',
       procedures,
-      surgery_plan: deal?.Surgery_Plan ?? null,
+      surgery_plan: deal?.Surgery_Plan?.name ?? (typeof deal?.Surgery_Plan === 'string' ? deal?.Surgery_Plan : null),
       lead_stage: null,
       deal_stage: deal?.Stage ?? null,
       converted: true,
       surgery_date: deal?.Surgery_Date ?? null,
-      surgeon: deal?.Surgeon ?? null,
-      coordinator: deal?.Owner?.name ?? null,
-      brand: deal?.Account_Name ?? null,
+      surgeon: deal?.Surgeon?.name ?? (typeof deal?.Surgeon === 'string' ? deal?.Surgeon      : null),
+      coordinator:  deal?.Owner?.name ?? null,
+      brand: deal?.Account_Name?.name ?? (typeof deal?.Account_Name === 'string' ? deal?.Account_Name : null),
       amount: deal?.Amount ?? null,
     }
   }
@@ -184,9 +184,9 @@ export async function getPatientByEmail(email: string): Promise<PatientProfile |
     deal_stage: null,
     converted: false,
     surgery_date: null,
-    surgeon: lead.Surgeon ?? null,
+    surgeon: lead.Surgeon?.name ?? (typeof lead.Surgeon === 'string' ? lead.Surgeon : null),
     coordinator: lead.Owner?.name ?? null,
-    brand: lead.Company1 ?? null,
+    brand: typeof lead.Company1 === 'string' ? lead.Company1 : (lead.Company1?.name ?? null),
     amount: null,
   }
 }
