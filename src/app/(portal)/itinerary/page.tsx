@@ -1,0 +1,1054 @@
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
+import type { SurgeryRecord, SurgeryUpdatePayload } from '@/lib/zoho/surgery'
+
+// ── Picklist values — actualiza con los valores exactos de CRM ────
+const ARRIVAL_METHODS = ['✈️ By Plane', '🚗 By Car', '🏨 Already in San Diego', 'Other']
+// Hoteles primero → para Stay Before Surgery
+const STAY_BEFORE_OPTIONS = [
+  'Marriott Tijuana (Hotel)',
+  'Hotel Lucerna (Hotel)',
+  'Real Inn Tijuana (Hotel)',
+  'City Express Plus (Hotel)',
+  'Hotel Quartz (Hotel)',
+  'Baja Premium (Recovery house)',
+  'Cocoon Recovery (Recovery house)',
+  'Palmas Recovery (Recovery house)',
+  'Casa by Linda (Recovery house)',
+  'Bella (Recovery house)',
+  'None',
+  'Other',
+]
+// Recovery houses primero → para Stay After Surgery
+const STAY_AFTER_OPTIONS = [
+  'Baja Premium (Recovery house)',
+  'Cocoon Recovery (Recovery house)',
+  'Palmas Recovery (Recovery house)',
+  'Casa by Linda (Recovery house)',
+  'Bella (Recovery house)',
+  'Marriott Tijuana (Hotel)',
+  'Hotel Lucerna (Hotel)',
+  'Real Inn Tijuana (Hotel)',
+  'City Express Plus (Hotel)',
+  'Hotel Quartz (Hotel)',
+  'None',
+  'Other',
+]
+const TRANSPORTATION_OPTIONS = ['Yes', 'No', 'Not Confirmed Yet']
+const COMPANION_OPTIONS      = ['Yes', 'No', 'Not Confirmed Yet']
+const MEDICAL_PASS_OPTIONS   = ['Yes', 'No', 'Not Needed']
+const INFO_CONFIRMATIONS = [
+  'I confirm all information is correct',
+  'I understand recovery house is not included',
+]
+
+type FormState = Omit<SurgeryUpdatePayload, 'info_confirmation'> & {
+  info_confirmation: string[]
+}
+
+export default function ItineraryPage() {
+  const [surgery, setSurgery]     = useState<SurgeryRecord | null>(null)
+  const [loading, setLoading]     = useState(true)
+  const [error, setError]         = useState<string | null>(null)
+  const [form, setForm]           = useState<FormState>({ info_confirmation: [] })
+  const [saving, setSaving]       = useState(false)
+  const [saveResult, setSaveResult] = useState<'success' | 'error' | null>(null)
+  const [stayBeforeOther, setStayBeforeOther] = useState(
+    surgery?.stay_before_surgery && !STAY_BEFORE_OPTIONS.includes(surgery.stay_before_surgery)
+        ? surgery.stay_before_surgery : ''
+    )
+  const [stayAfterOther, setStayAfterOther] = useState(
+    surgery?.stay_after_surgery && !STAY_AFTER_OPTIONS.includes(surgery.stay_after_surgery)
+        ? surgery.stay_after_surgery : ''
+    )
+  const [uploadingField, setUploadingField] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetch('/api/zoho/surgery')
+      .then((r) => {
+        if (!r.ok) throw new Error('No se encontró tu información de cirugía')
+        return r.json()
+      })
+      .then(({ surgery: s }) => {
+        setSurgery(s)
+        // Pre-popula el form con los datos existentes
+        setForm({
+          patient_arrival_method:   s.patient_arrival_method ?? undefined,
+          airline:                  s.airline ?? undefined,
+          flight_number:            s.flight_number ?? undefined,
+          arrival_date_time:        s.arrival_date_time ?? undefined,
+          airline_departure:        s.airline_departure ?? undefined,
+          flight_number_departure:  s.flight_number_departure ?? undefined,
+          departure_date_time:      s.departure_date_time ?? undefined,
+          location_before_surgery:  s.location_before_surgery ?? undefined,
+          location_after_surgery:   s.location_after_surgery ?? undefined,
+          stay_before_surgery:      s.stay_before_surgery ?? undefined,
+          stay_after_surgery:       s.stay_after_surgery ?? undefined,
+          nights_before_surgery:    s.nights_before_surgery ?? undefined,
+          nights_after_surgery:     s.nights_after_surgery ?? undefined,
+          san_diego_transportation: s.san_diego_transportation ?? undefined,
+          pickup_address:           s.pickup_address ?? undefined,
+          address_line_2:           s.address_line_2 ?? undefined,
+          postal_zip_code:          s.postal_zip_code ?? undefined,
+          number_of_companions:     s.number_of_companions ?? undefined,
+          companion_during_surgery: s.companion_during_surgery ?? undefined,
+          companion_first_name:     s.companion_first_name ?? undefined,
+          companion_last_name:      s.companion_last_name ?? undefined,
+          companion_phone:          s.companion_phone ?? undefined,
+          companion_email:          s.companion_email ?? undefined,
+          companion_for_medical_pass: s.companion_for_medical_pass ?? undefined,
+          medical_pass:             s.medical_pass ?? undefined,
+          info_confirmation:        s.info_confirmation ?? [],
+        })
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
+  }, [])
+
+  const set = useCallback((key: keyof FormState, value: any) => {
+    setForm((prev) => ({ ...prev, [key]: value }))
+  }, [])
+
+  const toggleConfirmation = (val: string) => {
+    setForm((prev) => {
+      const current = prev.info_confirmation ?? []
+      return {
+        ...prev,
+        info_confirmation: current.includes(val)
+          ? current.filter((v) => v !== val)
+          : [...current, val],
+      }
+    })
+  }
+
+  async function handleSave() {
+    if (!surgery) return
+    setSaving(true)
+    setSaveResult(null)
+
+    const res = await fetch('/api/zoho/surgery', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+
+    setSaving(false)
+    setSaveResult(res.ok ? 'success' : 'error')
+    if (res.ok) {
+      setSurgery((prev) => prev
+        ? { ...prev, submission_count: prev.submission_count + 1, last_submission_date: new Date().toISOString() }
+        : prev
+      )
+    }
+    // Clear result message after 4s
+    setTimeout(() => setSaveResult(null), 4000)
+  }
+
+  async function handleFileUpload(fieldKey: string, file: File) {
+    setUploadingField(fieldKey)
+    const fd = new FormData()
+    fd.append('field', fieldKey)
+    fd.append('file', file)
+    const res = await fetch('/api/zoho/surgery/files', { method: 'POST', body: fd })
+    setUploadingField(null)
+    if (res.ok) {
+      // Marca el archivo como subido
+      setSurgery((prev) => {
+        if (!prev) return prev
+        const update: Partial<SurgeryRecord> = {}
+        if (fieldKey === 'patient_id')       update.has_patient_id = true
+        if (fieldKey === 'companion_id')     update.has_companion_id = true
+        if (fieldKey === 'lab_results')      update.has_lab_results = true
+        if (fieldKey === 'flight_arrival')   update.has_flight_details_arrival = true
+        if (fieldKey === 'flight_departure') update.has_flight_details_departure = true
+        return { ...prev, ...update }
+      })
+    }
+  }
+
+  if (loading)  return <PageSkeleton />
+  if (error)    return <ErrorState message={error} />
+  if (!surgery) return null
+
+  const isByPlane   = form.patient_arrival_method === '✈️ By Plane'
+  const hasCompanion = form.companion_during_surgery === 'Yes'
+  const isReadOnly  = surgery.status === 'completed' || surgery.status === 'cancelled'
+
+  return (
+    <div className="itin-page">
+
+      {/* Header */}
+      <div className="itin-header">
+        <div>
+          <h1 className="itin-title">Itinerario & Confirmación</h1>
+          <p className="itin-subtitle">
+            Completa y actualiza tu información de viaje y recuperación.
+            Puedes regresar a esta página en cualquier momento.
+          </p>
+        </div>
+        {surgery.last_submission_date && (
+          <div className="last-saved">
+            <span className="last-saved-icon">✓</span>
+            Última actualización: {formatDate(surgery.last_submission_date)}
+          </div>
+        )}
+      </div>
+
+      {/* Banner de estado */}
+      {surgery.status === 'completed' && (
+        <div className="status-banner status-banner--completed">
+          <span>✓</span>
+          <p>Tu proceso de cirugía ha sido completado. Esta información es de solo lectura.</p>
+        </div>
+      )}
+      {surgery.status === 'cancelled' && (
+        <div className="status-banner status-banner--cancelled">
+          <span>✕</span>
+          <p>Este proceso fue cancelado. Contacta a tu coordinadora para más información.</p>
+        </div>
+      )}
+
+      {/* Progress chips */}
+      <div className="progress-chips">
+        <ProgressChip label="ID del paciente"   done={surgery.has_patient_id} />
+        <ProgressChip label="Labs"              done={surgery.has_lab_results} />
+        <ProgressChip label="Vuelo llegada"     done={surgery.has_flight_details_arrival || !isByPlane} />
+        <ProgressChip label="Vuelo salida"      done={surgery.has_flight_details_departure || !isByPlane} />
+        <ProgressChip label="Acompañante ID"    done={!hasCompanion || surgery.has_companion_id} />
+      </div>
+
+      {/* ── SECCIÓN 1: Método de llegada ── */}
+      <FormSection title="¿Cómo llegarás?" emoji="🚦">
+        <RadioGroup
+          name="arrival_method"
+          options={ARRIVAL_METHODS}
+          value={form.patient_arrival_method ?? ''}
+          onChange={(v) => set('patient_arrival_method', v)}
+          disabled={isReadOnly}
+        />
+      </FormSection>
+
+      {/* ── SECCIÓN 2: Vuelo — Llegada a Tijuana ── */}
+      {isByPlane && (
+        <FormSection title="Vuelo — Llegada a Tijuana 🛬">
+          <div className="form-grid-2">
+            <TextInput label="Aerolínea" value={form.airline ?? ''} onChange={(v) => set('airline', v)} disabled={isReadOnly} />
+            <TextInput label="Número de vuelo" value={form.flight_number ?? ''} onChange={(v) => set('flight_number', v)} disabled={isReadOnly} />
+          </div>
+          <div className="form-grid-2">
+            <DateTimeInput label="Fecha y hora de llegada" value={form.arrival_date_time ?? ''} onChange={(v) => set('arrival_date_time', v)} disabled={isReadOnly} />
+          </div>
+          <FileUploadField
+            label="Itinerario de vuelo (llegada)"
+            fieldKey="flight_arrival"
+            hasFile={surgery.has_flight_details_arrival}
+            onUpload={handleFileUpload}
+            uploading={uploadingField === 'flight_arrival'}
+            disabled={isReadOnly}
+          />
+        </FormSection>
+      )}
+
+      {/* ── SECCIÓN 3: Vuelo — Salida de Tijuana ── */}
+      {isByPlane && (
+        <FormSection title="Vuelo — Salida de Tijuana 🛫">
+          <div className="form-grid-2">
+            <TextInput label="Aerolínea (salida)" value={form.airline_departure ?? ''} onChange={(v) => set('airline_departure', v)} disabled={isReadOnly} />
+            <TextInput label="Número de vuelo (salida)" value={form.flight_number_departure ?? ''} onChange={(v) => set('flight_number_departure', v)} disabled={isReadOnly} />
+          </div>
+          <div className="form-grid-2">
+            <DateTimeInput label="Fecha y hora de salida" value={form.departure_date_time ?? ''} onChange={(v) => set('departure_date_time', v)} disabled={isReadOnly} />
+          </div>
+          <FileUploadField
+            label="Itinerario de vuelo (salida)"
+            fieldKey="flight_departure"
+            hasFile={surgery.has_flight_details_departure}
+            onUpload={handleFileUpload}
+            uploading={uploadingField === 'flight_departure'}
+            disabled={isReadOnly}
+          />
+        </FormSection>
+      )}
+
+      {/* ── SECCIÓN 4: Hospedaje ── */}
+      <FormSection title="Hospedaje 🏨">
+        <div className="form-grid-2">
+            <div className="field-wrapper">
+            <label>Hospedaje antes de cirugía</label>
+            <SelectInput
+                options={STAY_BEFORE_OPTIONS}
+                value={STAY_BEFORE_OPTIONS.includes(form.stay_before_surgery ?? '')
+                ? (form.stay_before_surgery ?? '')
+                : (form.stay_before_surgery ? 'Other' : '')}
+                onChange={(v) => {
+                set('stay_before_surgery', v === 'Other' ? '' : v)
+                if (v !== 'Other') setStayBeforeOther('')
+                }}
+                disabled={isReadOnly}
+            />
+            {(form.stay_before_surgery === '' && stayBeforeOther !== undefined) ||
+            (form.stay_before_surgery && !STAY_BEFORE_OPTIONS.slice(0,-1).includes(form.stay_before_surgery)) ? (
+                <input
+                type="text"
+                className="field-input"
+                placeholder="Especifica el hospedaje..."
+                value={stayBeforeOther}
+                disabled={isReadOnly}
+                onChange={(e) => {
+                    setStayBeforeOther(e.target.value)
+                    set('stay_before_surgery', e.target.value)
+                }}
+                />
+            ) : null}
+            </div>
+            <NumberInput
+            label="Noches antes de cirugía"
+            value={form.nights_before_surgery ?? ''}
+            onChange={(v) => set('nights_before_surgery', v ? Number(v) : null)}
+            disabled={isReadOnly}
+            />
+        </div>
+
+        <TextInput
+            label="Nombre / Dirección (antes de cirugía)"
+            value={form.location_before_surgery ?? ''}
+            onChange={(v) => set('location_before_surgery', v)}
+            disabled={isReadOnly}
+        />
+
+        <div className="form-grid-2">
+            <div className="field-wrapper">
+            <label>Hospedaje después de cirugía</label>
+            <SelectInput
+                options={STAY_AFTER_OPTIONS}
+                value={STAY_AFTER_OPTIONS.includes(form.stay_after_surgery ?? '')
+                ? (form.stay_after_surgery ?? '')
+                : (form.stay_after_surgery ? 'Other' : '')}
+                onChange={(v) => {
+                set('stay_after_surgery', v === 'Other' ? '' : v)
+                if (v !== 'Other') setStayAfterOther('')
+                }}
+                disabled={isReadOnly}
+            />
+            {(form.stay_after_surgery === '' && stayAfterOther !== undefined) ||
+            (form.stay_after_surgery && !STAY_AFTER_OPTIONS.slice(0,-1).includes(form.stay_after_surgery)) ? (
+                <input
+                type="text"
+                className="field-input"
+                placeholder="Especifica el hospedaje..."
+                value={stayAfterOther}
+                disabled={isReadOnly}
+                onChange={(e) => {
+                    setStayAfterOther(e.target.value)
+                    set('stay_after_surgery', e.target.value)
+                }}
+                />
+            ) : null}
+            </div>
+            <NumberInput
+            label="Noches después de cirugía"
+            value={form.nights_after_surgery ?? ''}
+            onChange={(v) => set('nights_after_surgery', v ? Number(v) : null)}
+            disabled={isReadOnly}
+            />
+        </div>
+
+        <TextInput
+            label="Nombre / Dirección (después de cirugía)"
+            value={form.location_after_surgery ?? ''}
+            onChange={(v) => set('location_after_surgery', v)}
+            disabled={isReadOnly}
+        />
+      </FormSection>
+
+      {/* ── SECCIÓN 5: Transporte ── */}
+      <FormSection title="Transporte & Pickup 🚐">
+        <div className="field-wrapper">
+            <label>¿Necesitas transporte desde San Diego?</label>
+            <RadioGroup
+            name="sdtransport"
+            options={TRANSPORTATION_OPTIONS}
+            value={form.san_diego_transportation ?? ''}
+            onChange={(v) => set('san_diego_transportation', v)}
+            disabled={isReadOnly}
+            />
+        </div>
+
+        {form.san_diego_transportation === 'Yes' && (
+            <>
+            <div className="transport-note">
+                <span>ℹ</span>
+                <p>El equipo de CER se pondrá en contacto contigo para coordinar el pickup. Proporciona tu dirección de recogida:</p>
+            </div>
+            <div className="form-grid-2">
+                <TextInput label="Dirección de pickup" value={form.pickup_address ?? ''} onChange={(v) => set('pickup_address', v)} disabled={isReadOnly} />
+                <TextInput label="Address Line 2" value={form.address_line_2 ?? ''} onChange={(v) => set('address_line_2', v)} disabled={isReadOnly} />
+            </div>
+            <div className="form-grid-2">
+                <TextInput label="Código postal" value={form.postal_zip_code ?? ''} onChange={(v) => set('postal_zip_code', v)} disabled={isReadOnly} />
+                <NumberInput label="Número de acompañantes en el pickup" value={form.number_of_companions ?? ''} onChange={(v) => set('number_of_companions', v ? Number(v) : null)} disabled={isReadOnly} />
+            </div>
+            </>
+        )}
+      </FormSection>
+
+      {/* ── SECCIÓN 6: Labs ── */}
+      <FormSection title="Resultados de Laboratorio 🧪">
+        <p className="section-note">
+          Sube tus resultados como foto (JPG/PNG) o PDF. Deben ser de los últimos 3 meses.
+        </p>
+        <FileUploadField
+          label="Subir resultados de laboratorio"
+          fieldKey="lab_results"
+          hasFile={surgery.has_lab_results}
+          onUpload={handleFileUpload}
+          uploading={uploadingField === 'lab_results'}
+          disabled={isReadOnly}
+        />
+      </FormSection>
+
+      {/* ── SECCIÓN 7: Acompañante ── */}
+      <FormSection title="Datos del Acompañante 👤">
+        <div className="field-wrapper">
+          <label>¿Tendrás acompañante durante la cirugía?</label>
+          <RadioGroup
+            name="companion"
+            options={COMPANION_OPTIONS}
+            value={form.companion_during_surgery ?? ''}
+            onChange={(v) => set('companion_during_surgery', v)}
+            disabled={isReadOnly}
+          />
+        </div>
+
+        {hasCompanion && (
+          <>
+            <div className="form-grid-2">
+              <TextInput label="Nombre" value={form.companion_first_name ?? ''} onChange={(v) => set('companion_first_name', v)} disabled={isReadOnly} />
+              <TextInput label="Apellido" value={form.companion_last_name ?? ''} onChange={(v) => set('companion_last_name', v)} disabled={isReadOnly} />
+            </div>
+            <div className="form-grid-2">
+              <TextInput label="Teléfono" value={form.companion_phone ?? ''} onChange={(v) => set('companion_phone', v)} disabled={isReadOnly} />
+              <TextInput label="Correo electrónico" value={form.companion_email ?? ''} onChange={(v) => set('companion_email', v)} disabled={isReadOnly} />
+            </div>
+            <div className="form-grid-2">
+              <div className="field-wrapper">
+                <label>Medical Pass</label>
+                <SelectInput options={MEDICAL_PASS_OPTIONS} value={form.medical_pass ?? ''} onChange={(v) => set('medical_pass', v)} disabled={isReadOnly} />
+              </div>
+              <div className="field-wrapper">
+                <label>1 Acompañante (Medical Pass)</label>
+                <SelectInput options={COMPANION_OPTIONS} value={form.companion_for_medical_pass ?? ''} onChange={(v) => set('companion_for_medical_pass', v)} disabled={isReadOnly} />
+              </div>
+            </div>
+          </>
+        )}
+      </FormSection>
+
+      {/* ── SECCIÓN 8: Documentos (IDs) ── */}
+      <FormSection title="Documentos — Identificaciones 🪪">
+        <div className="form-grid-2">
+          <FileUploadField
+            label="ID del paciente"
+            fieldKey="patient_id"
+            hasFile={surgery.has_patient_id}
+            onUpload={handleFileUpload}
+            uploading={uploadingField === 'patient_id'}
+            disabled={isReadOnly}
+          />
+          {hasCompanion && (
+            <FileUploadField
+              label="ID del acompañante"
+              fieldKey="companion_id"
+              hasFile={surgery.has_companion_id}
+              onUpload={handleFileUpload}
+              uploading={uploadingField === 'companion_id'}
+              disabled={isReadOnly}
+            />
+          )}
+        </div>
+      </FormSection>
+
+      {/* ── SECCIÓN 9: Confirmación ── */}
+      {!isReadOnly && (
+        <FormSection title="Confirmación ✅">
+          <div className="confirmation-checks">
+            {INFO_CONFIRMATIONS.map((item) => (
+              <label key={item} className="check-label">
+                <input
+                  type="checkbox"
+                  className="check-input"
+                  checked={form.info_confirmation.includes(item)}
+                  onChange={() => toggleConfirmation(item)}
+                />
+                <span className="check-text">{item}</span>
+              </label>
+            ))}
+          </div>
+        </FormSection>
+      )}
+
+      {/* ── Botón guardar ── */}
+      {!isReadOnly && (
+        <div className="save-bar">
+          {saveResult === 'success' && (
+            <span className="save-msg save-msg--ok">✓ Información guardada correctamente</span>
+          )}
+          {saveResult === 'error' && (
+            <span className="save-msg save-msg--err">⚠ Error al guardar. Intenta de nuevo.</span>
+          )}
+          <button className="save-btn" onClick={handleSave} disabled={saving}>
+            {saving ? <><span className="spinner-sm" /> Guardando...</> : 'Guardar información'}
+          </button>
+        </div>
+      )}
+
+      <style>{itinStyles}</style>
+    </div>
+  )
+}
+
+// ─── Sub-componentes ──────────────────────────────────────────────
+function FormSection({ title, emoji, children }: {
+  title: string; emoji?: string; children: React.ReactNode
+}) {
+  return (
+    <section className="form-section">
+      <h2 className="form-section-title">{title}</h2>
+      <div className="form-section-body">{children}</div>
+    </section>
+  )
+}
+
+function TextInput({ label, value, onChange, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; disabled?: boolean
+}) {
+  return (
+    <div className="field-wrapper">
+      <label>{label}</label>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input" />
+    </div>
+  )
+}
+
+function NumberInput({ label, value, onChange, disabled }: {
+  label: string; value: string | number; onChange: (v: string) => void; disabled?: boolean
+}) {
+  return (
+    <div className="field-wrapper">
+      <label>{label}</label>
+      <input type="number" min={0} value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input" />
+    </div>
+  )
+}
+
+function DateTimeInput({ label, value, onChange, disabled }: {
+  label: string; value: string; onChange: (v: string) => void; disabled?: boolean
+}) {
+  return (
+    <div className="field-wrapper">
+      <label>{label}</label>
+      <input type="datetime-local" value={value ? value.slice(0, 16) : ''} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input" />
+    </div>
+  )
+}
+
+function SelectInput({ options, value, onChange, disabled }: {
+  options: string[]; value: string; onChange: (v: string) => void; disabled?: boolean
+}) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input field-select">
+      <option value="">— Selecciona —</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  )
+}
+
+function RadioGroup({ name, options, value, onChange, disabled }: {
+  name: string; options: string[]; value: string; onChange: (v: string) => void; disabled?: boolean
+}) {
+  return (
+    <div className="radio-group">
+      {options.map((opt) => (
+        <label key={opt} className={`radio-label ${value === opt ? 'radio-label--active' : ''}`}>
+          <input type="radio" name={name} value={opt} checked={value === opt} onChange={() => onChange(opt)} disabled={disabled} className="radio-input" />
+          {opt}
+        </label>
+      ))}
+    </div>
+  )
+}
+
+function FileUploadField({ label, fieldKey, hasFile, onUpload, uploading, disabled }: {
+  label: string
+  fieldKey: string
+  hasFile: boolean
+  onUpload: (key: string, file: File) => Promise<void>
+  uploading: boolean
+  disabled?: boolean
+}) {
+  return (
+    <div className="field-wrapper">
+      <label>{label}</label>
+      <div className={`file-zone ${hasFile ? 'file-zone--done' : ''}`}>
+        {hasFile ? (
+          <div className="file-done">
+            <span className="file-done-icon">✓</span>
+            <span>Archivo recibido</span>
+            {!disabled && (
+              <label className="file-replace-btn">
+                Reemplazar
+                <input type="file" className="file-hidden" onChange={(e) => {
+                  const f = e.target.files?.[0]
+                  if (f) onUpload(fieldKey, f)
+                  e.target.value = ''
+                }} />
+              </label>
+            )}
+          </div>
+        ) : uploading ? (
+          <div className="file-uploading">
+            <span className="spinner-sm" /> Subiendo...
+          </div>
+        ) : (
+          <label className="file-upload-label">
+            <span className="file-upload-icon">↑</span>
+            <span>Seleccionar archivo</span>
+            <input type="file" className="file-hidden" disabled={disabled} onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) onUpload(fieldKey, f)
+              e.target.value = ''
+            }} />
+          </label>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ProgressChip({ label, done }: { label: string; done: boolean }) {
+  return (
+    <div className={`prog-chip ${done ? 'prog-chip--done' : ''}`}>
+      <span>{done ? '✓' : '○'}</span>
+      {label}
+    </div>
+  )
+}
+
+function PageSkeleton() {
+  return (
+    <div className="itin-page">
+      <div className="skeleton skeleton--title" />
+      {[1, 2, 3].map((i) => <div key={i} className="skeleton skeleton--section" />)}
+      <style>{itinStyles}</style>
+    </div>
+  )
+}
+
+function ErrorState({ message }: { message: string }) {
+  return (
+    <div className="itin-page">
+      <div className="error-state">⚠ {message}</div>
+      <style>{itinStyles}</style>
+    </div>
+  )
+}
+
+function formatDate(str: string) {
+  return new Date(str).toLocaleDateString('es-MX', {
+    day: 'numeric', month: 'short', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+  })
+}
+
+// ─── Styles ───────────────────────────────────────────────────────
+const itinStyles = `
+  .itin-page {
+    max-width: 860px;
+    color: white;
+    font-family: var(--font-dm-sans, 'DM Sans', sans-serif);
+    padding-bottom: 80px;
+  }
+
+  .itin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .itin-title {
+    font-family: var(--font-epilogue, 'Epilogue', sans-serif);
+    font-size: 30px;
+    font-weight: 600;
+    color: white;
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+  }
+
+  .itin-subtitle {
+    font-size: 14px;
+    color: rgba(255,255,255,0.4);
+    margin: 0;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  .last-saved {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(74,222,128,0.7);
+    background: rgba(74,222,128,0.06);
+    border: 1px solid rgba(74,222,128,0.12);
+    border-radius: 8px;
+    padding: 8px 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .last-saved-icon { font-size: 14px; }
+
+  /* Status banners */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    border: 1px solid;
+  }
+  .status-banner p { margin: 0; }
+  .status-banner span { font-size: 18px; flex-shrink: 0; }
+
+  .status-banner--completed {
+    background: rgba(74,222,128,0.06);
+    border-color: rgba(74,222,128,0.15);
+    color: rgba(74,222,128,0.8);
+  }
+  .status-banner--cancelled {
+    background: rgba(248,113,113,0.06);
+    border-color: rgba(248,113,113,0.15);
+    color: rgba(248,113,113,0.8);
+  }
+
+  /* Progress chips */
+  .progress-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 32px;
+  }
+
+  .prog-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 6px 14px;
+    transition: all 0.2s;
+  }
+
+  .prog-chip--done {
+    color: #4ade80;
+    background: rgba(74,222,128,0.06);
+    border-color: rgba(74,222,128,0.15);
+  }
+
+  /* Form sections */
+  .form-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .form-section-title {
+    font-family: var(--font-epilogue, 'Epilogue', sans-serif);
+    font-size: 15px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+    margin: 0;
+    padding: 18px 22px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .form-section-body {
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .section-note {
+    font-size: 13px;
+    color: rgba(255,255,255,0.35);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Grid */
+  .form-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+
+  /* Field */
+  .field-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field-wrapper label {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .field-input {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: white;
+    font-family: var(--font-dm-sans, 'DM Sans', sans-serif);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .field-input:focus { border-color: rgba(0,196,204,0.4); }
+  .field-input:disabled { opacity: 0.4; cursor: not-allowed; }
+  .field-select { appearance: none; cursor: pointer; }
+  .field-input::placeholder { color: rgba(255,255,255,0.2); }
+
+  /* Radio group */
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .radio-input { display: none; }
+
+  .radio-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .radio-label:hover { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); }
+
+  .radio-label--active {
+    background: rgba(0,47,125,0.3);
+    border-color: rgba(0,196,204,0.3);
+    color: white;
+  }
+
+  /* File upload */
+  .file-zone {
+    border: 1px dashed rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  .file-zone--done {
+    border-style: solid;
+    border-color: rgba(74,222,128,0.2);
+    background: rgba(74,222,128,0.04);
+  }
+
+  .file-done {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 13px;
+    color: #4ade80;
+  }
+
+  .file-done-icon { font-size: 16px; }
+
+  .file-replace-btn, .file-upload-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-left: 8px;
+  }
+
+  .file-replace-btn:hover, .file-upload-label:hover {
+    border-color: rgba(0,196,204,0.3);
+    color: rgba(255,255,255,0.8);
+  }
+
+  .file-upload-label { flex-direction: column; gap: 6px; padding: 16px; width: 100%; justify-content: center; box-sizing: border-box; }
+  .file-upload-icon { font-size: 20px; color: rgba(255,255,255,0.3); }
+  .file-uploading { display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 13px; color: rgba(255,255,255,0.4); }
+  .file-hidden { display: none; }
+
+  /* Confirmación */
+  .confirmation-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .check-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .check-input {
+    width: 18px;
+    height: 18px;
+    accent-color: #00c4cc;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Save bar */
+  .save-bar {
+    position: fixed;
+    bottom: 0; left: 240px; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 16px;
+    padding: 16px 40px;
+    background: rgba(6,15,36,0.95);
+    border-top: 1px solid rgba(255,255,255,0.07);
+    backdrop-filter: blur(10px);
+    z-index: 50;
+  }
+
+  .save-msg {
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 8px;
+  }
+
+  .save-msg--ok  { color: #4ade80; background: rgba(74,222,128,0.08); }
+  .save-msg--err { color: #f87171; background: rgba(248,113,113,0.08); }
+
+  .save-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, #002f7d, #0043b0);
+    border: 1px solid rgba(0,196,204,0.2);
+    border-radius: 10px;
+    color: white;
+    font-family: var(--font-dm-sans, 'DM Sans', sans-serif);
+    font-size: 14px;
+    font-weight: 500;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .save-btn:hover:not(:disabled) {
+    border-color: rgba(0,196,204,0.4);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0,47,125,0.4);
+  }
+
+  .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Spinner */
+  .spinner-sm {
+    width: 14px; height: 14px;
+    border: 2px solid rgba(255,255,255,0.2);
+    border-top-color: #00c4cc;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Skeletons */
+  .skeleton {
+    background: rgba(255,255,255,0.05);
+    border-radius: 14px;
+    animation: pulse 1.5s ease-in-out infinite;
+    margin-bottom: 16px;
+  }
+  .skeleton--title   { height: 40px; width: 280px; }
+  .skeleton--section { height: 180px; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50%       { opacity: 1; }
+  }
+
+  .error-state {
+    background: rgba(255,100,100,0.05);
+    border: 1px solid rgba(255,100,100,0.15);
+    border-radius: 12px;
+    padding: 24px;
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+  }
+
+  .transport-note {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(0,196,204,0.7);
+    background: rgba(0,196,204,0.05);
+    border: 1px solid rgba(0,196,204,0.1);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  .transport-note p { margin: 0; line-height: 1.5; }
+  .transport-note span { flex-shrink: 0; font-size: 16px; }
+
+  @media (max-width: 768px) {
+    .save-bar { left: 0; padding: 14px 20px; }
+    .form-grid-2 { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 480px) {
+    .radio-group { flex-direction: column; }
+  }
+`
