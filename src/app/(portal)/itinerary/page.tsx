@@ -67,7 +67,7 @@ export default function ItineraryPage() {
   useEffect(() => {
     fetch('/api/zoho/surgery')
       .then((r) => {
-        if (!r.ok) throw new Error('No se encontró tu información de cirugía')
+        if (!r.ok) throw new Error('Your surgery information was not found. Please contact your coordinator.')
         return r.json()
       })
       .then(({ surgery: s }) => {
@@ -183,14 +183,14 @@ export default function ItineraryPage() {
         <div>
           <h1 className="itin-title">Itinerario & Confirmación</h1>
           <p className="itin-subtitle">
-            Completa y actualiza tu información de viaje y recuperación.
-            Puedes regresar a esta página en cualquier momento.
+            Complete and update your travel and recovery information.
+            You can return to this page at any time.
           </p>
         </div>
         {surgery.last_submission_date && (
           <div className="last-saved">
             <span className="last-saved-icon">✓</span>
-            Última actualización: {formatDate(surgery.last_submission_date)}
+            Last updated: {formatDate(surgery.last_submission_date)}
           </div>
         )}
       </div>
@@ -199,27 +199,27 @@ export default function ItineraryPage() {
       {surgery.status === 'completed' && (
         <div className="status-banner status-banner--completed">
           <span>✓</span>
-          <p>Tu proceso de cirugía ha sido completado. Esta información es de solo lectura.</p>
+          <p>Your surgery process has been completed. This information is read-only.</p>
         </div>
       )}
       {surgery.status === 'cancelled' && (
         <div className="status-banner status-banner--cancelled">
           <span>✕</span>
-          <p>Este proceso fue cancelado. Contacta a tu coordinadora para más información.</p>
+          <p>Your process was cancelled. Please contact your coordinator for more information.</p>
         </div>
       )}
 
       {/* Progress chips */}
       <div className="progress-chips">
-        <ProgressChip label="ID del paciente"   done={surgery.has_patient_id} />
+        <ProgressChip label="Patient ID"   done={surgery.has_patient_id} />
         <ProgressChip label="Labs"              done={surgery.has_lab_results} />
-        <ProgressChip label="Vuelo llegada"     done={surgery.has_flight_details_arrival || !isByPlane} />
-        <ProgressChip label="Vuelo salida"      done={surgery.has_flight_details_departure || !isByPlane} />
-        <ProgressChip label="Acompañante ID"    done={!hasCompanion || surgery.has_companion_id} />
+        <ProgressChip label="Arrival Flight"     done={surgery.has_flight_details_arrival || !isByPlane} />
+        <ProgressChip label="Departure Flight"      done={surgery.has_flight_details_departure || !isByPlane} />
+        <ProgressChip label="Companion ID"    done={!hasCompanion || surgery.has_companion_id} />
       </div>
 
       {/* ── SECCIÓN 1: Método de llegada ── */}
-      <FormSection title="¿Cómo llegarás?" emoji="🚦">
+      <FormSection title="How will you arrive?" emoji="🚦">
         <RadioGroup
           name="arrival_method"
           options={ARRIVAL_METHODS}
@@ -231,16 +231,16 @@ export default function ItineraryPage() {
 
       {/* ── SECCIÓN 2: Vuelo — Llegada a Tijuana ── */}
       {isByPlane && (
-        <FormSection title="Vuelo — Llegada a Tijuana 🛬">
+        <FormSection title="Flight — Arrival in Tijuana 🛬">
           <div className="form-grid-2">
-            <TextInput label="Aerolínea" value={form.airline ?? ''} onChange={(v) => set('airline', v)} disabled={isReadOnly} />
-            <TextInput label="Número de vuelo" value={form.flight_number ?? ''} onChange={(v) => set('flight_number', v)} disabled={isReadOnly} />
+            <TextInput label="Airline" value={form.airline ?? ''} onChange={(v) => set('airline', v)} disabled={isReadOnly} />
+            <TextInput label="Flight Number" value={form.flight_number ?? ''} onChange={(v) => set('flight_number', v)} disabled={isReadOnly} />
           </div>
           <div className="form-grid-2">
-            <DateTimeInput label="Fecha y hora de llegada" value={form.arrival_date_time ?? ''} onChange={(v) => set('arrival_date_time', v)} disabled={isReadOnly} />
+            <DateTimeInput label="Arrival Date and Time" value={form.arrival_date_time ?? ''} onChange={(v) => set('arrival_date_time', v)} disabled={isReadOnly} />
           </div>
           <FileUploadField
-            label="Itinerario de vuelo (llegada)"
+            label="Flight Itinerary (Arrival)"
             fieldKey="flight_arrival"
             hasFile={surgery.has_flight_details_arrival}
             onUpload={handleFileUpload}
@@ -252,16 +252,16 @@ export default function ItineraryPage() {
 
       {/* ── SECCIÓN 3: Vuelo — Salida de Tijuana ── */}
       {isByPlane && (
-        <FormSection title="Vuelo — Salida de Tijuana 🛫">
+        <FormSection title="Flight — Departure from Tijuana 🛫">
           <div className="form-grid-2">
-            <TextInput label="Aerolínea (salida)" value={form.airline_departure ?? ''} onChange={(v) => set('airline_departure', v)} disabled={isReadOnly} />
-            <TextInput label="Número de vuelo (salida)" value={form.flight_number_departure ?? ''} onChange={(v) => set('flight_number_departure', v)} disabled={isReadOnly} />
+            <TextInput label="Airline (Departure)" value={form.airline_departure ?? ''} onChange={(v) => set('airline_departure', v)} disabled={isReadOnly} />
+            <TextInput label="Flight Number (Departure)" value={form.flight_number_departure ?? ''} onChange={(v) => set('flight_number_departure', v)} disabled={isReadOnly} />
           </div>
           <div className="form-grid-2">
-            <DateTimeInput label="Fecha y hora de salida" value={form.departure_date_time ?? ''} onChange={(v) => set('departure_date_time', v)} disabled={isReadOnly} />
+            <DateTimeInput label="Departure Date and Time" value={form.departure_date_time ?? ''} onChange={(v) => set('departure_date_time', v)} disabled={isReadOnly} />
           </div>
           <FileUploadField
-            label="Itinerario de vuelo (salida)"
+            label="Flight Itinerary (Departure)"
             fieldKey="flight_departure"
             hasFile={surgery.has_flight_details_departure}
             onUpload={handleFileUpload}
@@ -272,10 +272,10 @@ export default function ItineraryPage() {
       )}
 
       {/* ── SECCIÓN 4: Hospedaje ── */}
-      <FormSection title="Hospedaje 🏨">
+      <FormSection title="Lodging 🏨">
         <div className="form-grid-2">
             <div className="field-wrapper">
-            <label>Hospedaje antes de cirugía</label>
+            <label>Accommodation before surgery</label>
             <SelectInput
                 options={STAY_BEFORE_OPTIONS}
                 value={STAY_BEFORE_OPTIONS.includes(form.stay_before_surgery ?? '')
@@ -292,7 +292,7 @@ export default function ItineraryPage() {
                 <input
                 type="text"
                 className="field-input"
-                placeholder="Especifica el hospedaje..."
+                placeholder="Specify accommodation..."
                 value={stayBeforeOther}
                 disabled={isReadOnly}
                 onChange={(e) => {
@@ -303,7 +303,7 @@ export default function ItineraryPage() {
             ) : null}
             </div>
             <NumberInput
-            label="Noches antes de cirugía"
+            label="Nights before surgery"
             value={form.nights_before_surgery ?? ''}
             onChange={(v) => set('nights_before_surgery', v ? Number(v) : null)}
             disabled={isReadOnly}
@@ -311,7 +311,7 @@ export default function ItineraryPage() {
         </div>
 
         <TextInput
-            label="Nombre / Dirección (antes de cirugía)"
+            label="Name / Address (before surgery)"
             value={form.location_before_surgery ?? ''}
             onChange={(v) => set('location_before_surgery', v)}
             disabled={isReadOnly}
@@ -319,7 +319,7 @@ export default function ItineraryPage() {
 
         <div className="form-grid-2">
             <div className="field-wrapper">
-            <label>Hospedaje después de cirugía</label>
+            <label>Accommodation after surgery</label>
             <SelectInput
                 options={STAY_AFTER_OPTIONS}
                 value={STAY_AFTER_OPTIONS.includes(form.stay_after_surgery ?? '')
@@ -336,7 +336,7 @@ export default function ItineraryPage() {
                 <input
                 type="text"
                 className="field-input"
-                placeholder="Especifica el hospedaje..."
+                placeholder="Specify accommodation..."
                 value={stayAfterOther}
                 disabled={isReadOnly}
                 onChange={(e) => {
@@ -347,7 +347,7 @@ export default function ItineraryPage() {
             ) : null}
             </div>
             <NumberInput
-            label="Noches después de cirugía"
+            label="Nights after surgery"
             value={form.nights_after_surgery ?? ''}
             onChange={(v) => set('nights_after_surgery', v ? Number(v) : null)}
             disabled={isReadOnly}
@@ -355,7 +355,7 @@ export default function ItineraryPage() {
         </div>
 
         <TextInput
-            label="Nombre / Dirección (después de cirugía)"
+            label="Name / Address (after surgery)"
             value={form.location_after_surgery ?? ''}
             onChange={(v) => set('location_after_surgery', v)}
             disabled={isReadOnly}
@@ -363,9 +363,9 @@ export default function ItineraryPage() {
       </FormSection>
 
       {/* ── SECCIÓN 5: Transporte ── */}
-      <FormSection title="Transporte & Pickup 🚐">
+      <FormSection title="Transportation & Pickup 🚐">
         <div className="field-wrapper">
-            <label>¿Necesitas transporte desde San Diego?</label>
+            <label>Do you need transportation from San Diego?</label>
             <RadioGroup
             name="sdtransport"
             options={TRANSPORTATION_OPTIONS}
@@ -379,27 +379,26 @@ export default function ItineraryPage() {
             <>
             <div className="transport-note">
                 <span>ℹ</span>
-                <p>El equipo de CER se pondrá en contacto contigo para coordinar el pickup. Proporciona tu dirección de recogida:</p>
+                <p>The CER team will contact you to coordinate the pickup. Please provide your pickup address:</p>
             </div>
             <div className="form-grid-2">
-                <TextInput label="Dirección de pickup" value={form.pickup_address ?? ''} onChange={(v) => set('pickup_address', v)} disabled={isReadOnly} />
+                <TextInput label="Pickup Address" value={form.pickup_address ?? ''} onChange={(v) => set('pickup_address', v)} disabled={isReadOnly} />
                 <TextInput label="Address Line 2" value={form.address_line_2 ?? ''} onChange={(v) => set('address_line_2', v)} disabled={isReadOnly} />
             </div>
             <div className="form-grid-2">
-                <TextInput label="Código postal" value={form.postal_zip_code ?? ''} onChange={(v) => set('postal_zip_code', v)} disabled={isReadOnly} />
-                <NumberInput label="Número de acompañantes en el pickup" value={form.number_of_companions ?? ''} onChange={(v) => set('number_of_companions', v ? Number(v) : null)} disabled={isReadOnly} />
+                <TextInput label="Postal Code" value={form.postal_zip_code ?? ''} onChange={(v) => set('postal_zip_code', v)} disabled={isReadOnly} />
+                <NumberInput label="Number of Companions on Pickup" value={form.number_of_companions ?? ''} onChange={(v) => set('number_of_companions', v ? Number(v) : null)} disabled={isReadOnly} />
             </div>
             </>
         )}
       </FormSection>
 
       {/* ── SECCIÓN 6: Labs ── */}
-      <FormSection title="Resultados de Laboratorio 🧪">
+      <FormSection title="Laboratory Results 🧪">
         <p className="section-note">
-          Sube tus resultados como foto (JPG/PNG) o PDF. Deben ser de los últimos 3 meses.
-        </p>
+          Upload your results as a photo (JPG/PNG) or PDF. They must be from the last 3 months.        </p>
         <FileUploadField
-          label="Subir resultados de laboratorio"
+          label="Upload Laboratory Results"
           fieldKey="lab_results"
           hasFile={surgery.has_lab_results}
           onUpload={handleFileUpload}
@@ -409,9 +408,9 @@ export default function ItineraryPage() {
       </FormSection>
 
       {/* ── SECCIÓN 7: Acompañante ── */}
-      <FormSection title="Datos del Acompañante 👤">
+      <FormSection title="Companion Information 👤">
         <div className="field-wrapper">
-          <label>¿Tendrás acompañante durante la cirugía?</label>
+          <label>Will you have a companion during the surgery?</label>
           <RadioGroup
             name="companion"
             options={COMPANION_OPTIONS}
@@ -424,12 +423,12 @@ export default function ItineraryPage() {
         {hasCompanion && (
           <>
             <div className="form-grid-2">
-              <TextInput label="Nombre" value={form.companion_first_name ?? ''} onChange={(v) => set('companion_first_name', v)} disabled={isReadOnly} />
-              <TextInput label="Apellido" value={form.companion_last_name ?? ''} onChange={(v) => set('companion_last_name', v)} disabled={isReadOnly} />
+              <TextInput label="First Name" value={form.companion_first_name ?? ''} onChange={(v) => set('companion_first_name', v)} disabled={isReadOnly} />
+              <TextInput label="Last Name" value={form.companion_last_name ?? ''} onChange={(v) => set('companion_last_name', v)} disabled={isReadOnly} />
             </div>
             <div className="form-grid-2">
-              <TextInput label="Teléfono" value={form.companion_phone ?? ''} onChange={(v) => set('companion_phone', v)} disabled={isReadOnly} />
-              <TextInput label="Correo electrónico" value={form.companion_email ?? ''} onChange={(v) => set('companion_email', v)} disabled={isReadOnly} />
+              <TextInput label="Phone" value={form.companion_phone ?? ''} onChange={(v) => set('companion_phone', v)} disabled={isReadOnly} />
+              <TextInput label="Email" value={form.companion_email ?? ''} onChange={(v) => set('companion_email', v)} disabled={isReadOnly} />
             </div>
             <div className="form-grid-2">
               <div className="field-wrapper">
@@ -437,7 +436,7 @@ export default function ItineraryPage() {
                 <SelectInput options={MEDICAL_PASS_OPTIONS} value={form.medical_pass ?? ''} onChange={(v) => set('medical_pass', v)} disabled={isReadOnly} />
               </div>
               <div className="field-wrapper">
-                <label>1 Acompañante (Medical Pass)</label>
+                <label>1 Companion (Medical Pass)</label>
                 <SelectInput options={COMPANION_OPTIONS} value={form.companion_for_medical_pass ?? ''} onChange={(v) => set('companion_for_medical_pass', v)} disabled={isReadOnly} />
               </div>
             </div>
@@ -446,10 +445,10 @@ export default function ItineraryPage() {
       </FormSection>
 
       {/* ── SECCIÓN 8: Documentos (IDs) ── */}
-      <FormSection title="Documentos — Identificaciones 🪪">
+      <FormSection title="Documents — Identifications 🪪">
         <div className="form-grid-2">
           <FileUploadField
-            label="ID del paciente"
+            label="Patient ID"
             fieldKey="patient_id"
             hasFile={surgery.has_patient_id}
             onUpload={handleFileUpload}
@@ -458,7 +457,7 @@ export default function ItineraryPage() {
           />
           {hasCompanion && (
             <FileUploadField
-              label="ID del acompañante"
+              label="Companion ID"
               fieldKey="companion_id"
               hasFile={surgery.has_companion_id}
               onUpload={handleFileUpload}
@@ -471,7 +470,7 @@ export default function ItineraryPage() {
 
       {/* ── SECCIÓN 9: Confirmación ── */}
       {!isReadOnly && (
-        <FormSection title="Confirmación ✅">
+        <FormSection title="Confirmation ✅">
           <div className="confirmation-checks">
             {INFO_CONFIRMATIONS.map((item) => (
               <label key={item} className="check-label">
@@ -492,13 +491,13 @@ export default function ItineraryPage() {
       {!isReadOnly && (
         <div className="save-bar">
           {saveResult === 'success' && (
-            <span className="save-msg save-msg--ok">✓ Información guardada correctamente</span>
+            <span className="save-msg save-msg--ok">✓ Information saved correctly</span>
           )}
           {saveResult === 'error' && (
-            <span className="save-msg save-msg--err">⚠ Error al guardar. Intenta de nuevo.</span>
+            <span className="save-msg save-msg--err">⚠ Error saving information. Please try again.</span>
           )}
           <button className="save-btn" onClick={handleSave} disabled={saving}>
-            {saving ? <><span className="spinner-sm" /> Guardando...</> : 'Guardar información'}
+            {saving ? <><span className="spinner-sm" /> Saving...</> : 'Save Information'}
           </button>
         </div>
       )}
@@ -558,7 +557,7 @@ function SelectInput({ options, value, onChange, disabled }: {
 }) {
   return (
     <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input field-select">
-      <option value="">— Selecciona —</option>
+      <option value="">— Select —</option>
       {options.map((o) => <option key={o} value={o}>{o}</option>)}
     </select>
   )
@@ -594,10 +593,10 @@ function FileUploadField({ label, fieldKey, hasFile, onUpload, uploading, disabl
         {hasFile ? (
           <div className="file-done">
             <span className="file-done-icon">✓</span>
-            <span>Archivo recibido</span>
+            <span>File received</span>
             {!disabled && (
               <label className="file-replace-btn">
-                Reemplazar
+                Replace
                 <input type="file" className="file-hidden" onChange={(e) => {
                   const f = e.target.files?.[0]
                   if (f) onUpload(fieldKey, f)
@@ -608,12 +607,12 @@ function FileUploadField({ label, fieldKey, hasFile, onUpload, uploading, disabl
           </div>
         ) : uploading ? (
           <div className="file-uploading">
-            <span className="spinner-sm" /> Subiendo...
+            <span className="spinner-sm" /> Uploading...
           </div>
         ) : (
           <label className="file-upload-label">
             <span className="file-upload-icon">↑</span>
-            <span>Seleccionar archivo</span>
+            <span>Select File</span>
             <input type="file" className="file-hidden" disabled={disabled} onChange={(e) => {
               const f = e.target.files?.[0]
               if (f) onUpload(fieldKey, f)
