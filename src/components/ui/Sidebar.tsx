@@ -5,10 +5,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const NAV_ITEMS = [
-  { href: '/dashboard',  label: 'Mi Proceso',    icon: '◈' },
-  { href: '/documents',  label: 'Documentos',    icon: '◻' },
-  { href: '/financial',  label: 'Finanzas',      icon: '◇' },
-  { href: '/itinerary',  label: 'Itinerario',    icon: '◎' },
+  { href: '/dashboard',  label: 'My Process',    icon: '◈' },
+  { href: '/documents',  label: 'My Documents',     icon: '◻' },
+  { href: '/financial',  label: 'My Finances',      icon: '◇' },
+  { href: '/itinerary',  label: 'My Itinerary',     icon: '◎' },
 ]
 
 export default function Sidebar({ userEmail }: { userEmail: string }) {

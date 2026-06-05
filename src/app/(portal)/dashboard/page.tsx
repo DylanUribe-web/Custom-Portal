@@ -49,7 +49,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="dash-header">
         <div>
-          <h1 className="dash-title">Hola, {patient.first_name}</h1>
+          <h1 className="dash-title">Hi, {patient.first_name}</h1>
           <p className="dash-subtitle">
             {patient.surgery_date ? 'Here is a summary of your process with us.' : 'Your coordinator is preparing your plan.'}
           </p>
