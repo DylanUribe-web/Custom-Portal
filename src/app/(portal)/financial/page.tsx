@@ -109,7 +109,7 @@ export default function FinancialPage() {
     setDownloading(invoiceId)
     try {
       const res = await fetch(`/api/zoho/invoice-pdf/${invoiceId}`)
-      if (!res.ok) throw new Error('Error al descargar')
+      if (!res.ok) throw new Error('Error downloading PDF')
       const blob = await res.blob()
       const url  = URL.createObjectURL(blob)
       const a    = document.createElement('a')
