@@ -22,7 +22,7 @@ export default function LoginPage() {
       email: email.trim().toLowerCase(),
       options: {
         emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-        shouldCreateUser: true, // Solo acceso a pacientes pre-registrados
+        shouldCreateUser: true,  // false en producción para evitar registros no autorizados
       },
     })
 

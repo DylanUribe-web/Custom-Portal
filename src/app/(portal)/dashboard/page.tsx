@@ -6,12 +6,12 @@ import type { PatientQuote } from '@/lib/zoho/crm'
 
 // ─── Stages visibles al paciente ─────────────────────────────────
 const STAGES = [
-  { key: 'contact',   label: 'Primer contacto', icon: '◈' },
-  { key: 'quote',     label: 'Cotización',       icon: '◻' },
-  { key: 'review',    label: 'En revisión',      icon: '◷' },
-  { key: 'confirmed', label: 'Confirmado',       icon: '◆' },
-  { key: 'scheduled', label: 'Agendado',         icon: '◎' },
-  { key: 'surgery',   label: 'Cirugía',          icon: '✦' },
+  { key: 'contact',   label: 'Contact', icon: '◈' },
+  { key: 'quote',     label: 'Quote',       icon: '◻' },
+  { key: 'review',    label: 'Review',      icon: '◷' },
+  { key: 'confirmed', label: 'Confirmed',       icon: '◆' },
+  { key: 'scheduled', label: 'Scheduled',         icon: '◎' },
+  { key: 'surgery',   label: 'Surgery',          icon: '✦' },
 ]
 
 interface DashboardData {
@@ -27,7 +27,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetch('/api/zoho/patient')
-      .then((r) => { if (!r.ok) throw new Error('No se pudo cargar tu información'); return r.json() })
+      .then((r) => { if (!r.ok) throw new Error('Your information could not be loaded'); return r.json() })
       .then((d) => setData({ patient: d.patient, quotes: d.quotes ?? [] }))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -51,7 +51,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="dash-title">Hola, {patient.first_name}</h1>
           <p className="dash-subtitle">
-            {patient.surgery_date ? 'Aquí está el resumen de tu proceso con CER.' : 'Tu coordinadora está preparando tu plan.'}
+            {patient.surgery_date ? 'Here is a summary of your process with us.' : 'Your coordinator is preparing your plan.'}
           </p>
         </div>
         {patient.surgery_date && (
@@ -61,13 +61,13 @@ export default function DashboardPage() {
 
       {/* Status banners */}
       {pStatus === 'paused' && (
-        <div className="banner banner--paused">⏸ Tu proceso está en pausa. Tu coordinadora se pondrá en contacto pronto.</div>
+        <div className="banner banner--paused">⏸ Your process is on hold. Your coordinator will contact you soon.</div>
       )}
       {pStatus === 'inactive' && (
-        <div className="banner banner--info">ℹ Para reactivar tu consulta, contacta a nuestro equipo.</div>
+        <div className="banner banner--info">ℹ To reactivate your inquiry, please contact our team.</div>
       )}
       {pStatus === 'closed_lost' && (
-        <div className="banner banner--info">ℹ Tu expediente está cerrado. Contáctanos para retomar el proceso.</div>
+        <div className="banner banner--info">ℹ Your file is closed. Please contact us to resume the process.</div>
       )}
 
       {/* Countdown */}
@@ -75,9 +75,9 @@ export default function DashboardPage() {
         <div className="countdown-card">
           <div className="countdown-inner">
             <div>
-              <p className="countdown-label">Días para tu cirugía</p>
+              <p className="countdown-label">Days until your surgery</p>
               <p className="countdown-num">{daysLeft}</p>
-              <p className="countdown-sub">{daysLeft === 0 ? '¡Es hoy!' : daysLeft === 1 ? 'mañana' : 'días restantes'}</p>
+              <p className="countdown-sub">{daysLeft === 0 ? 'It is today!' : daysLeft === 1 ? 'tomorrow' : 'days remaining'}</p>
             </div>
             <div className="countdown-bar-wrap">
               <div className="countdown-bar">
@@ -92,21 +92,21 @@ export default function DashboardPage() {
       <div className="info-grid">
         {patient.surgeon && (
           <div className="info-card">
-            <p className="info-eyebrow">Tu cirujano</p>
+            <p className="info-eyebrow">Your surgeon</p>
             <div className="info-avatar">{initials(patient.surgeon)}</div>
             <p className="info-name">{patient.surgeon}</p>
           </div>
         )}
         {patient.coordinator && (
           <div className="info-card">
-            <p className="info-eyebrow">Tu coordinadora</p>
+            <p className="info-eyebrow">Your coordinator</p>
             <div className="info-avatar info-avatar--coord">{initials(patient.coordinator)}</div>
             <p className="info-name">{patient.coordinator}</p>
           </div>
         )}
         {patient.brand && (
           <div className="info-card info-card--brand">
-            <p className="info-eyebrow">Programa</p>
+            <p className="info-eyebrow">Program</p>
             <p className="info-name">{patient.brand}</p>
           </div>
         )}
@@ -114,7 +114,7 @@ export default function DashboardPage() {
 
       {/* ── Stage Tracker (clickable) ── */}
       <div className="stage-section">
-        <h2 className="section-title">Tu proceso</h2>
+        <h2 className="section-title">Your process</h2>
         <div className="stepper">
           {STAGES.map((s, i) => {
             const state = i < stageIdx ? 'done' : i === stageIdx ? 'active' : 'pending'
@@ -168,10 +168,10 @@ export default function DashboardPage() {
 function StageContact({ patient }: { patient: PatientProfile }) {
   return (
     <div className="panel-content">
-      <p>Hemos recibido tu consulta. Tu coordinadora, <strong>{patient.coordinator ?? 'nuestro equipo'}</strong>, se ha puesto en contacto contigo para conocer tus objetivos y responderte cualquier pregunta.</p>
+      <p>We have received your inquiry. Your coordinator, <strong>{patient.coordinator ?? 'our team'}</strong>, has contacted you to understand your goals and answer any questions.</p>
       {patient.procedures.length > 0 && (
         <div className="proc-list">
-          <p className="proc-title">Procedimientos de interés:</p>
+          <p className="proc-title">Procedures of interest:</p>
           {patient.procedures.map((p, i) => <span key={i} className="proc-tag">{p}</span>)}
         </div>
       )}
@@ -183,7 +183,7 @@ function StageQuote({ latestQuote, olderQuotes }: { latestQuote: PatientQuote | 
   const [showOlder, setShowOlder] = useState(false)
 
   if (!latestQuote) return (
-    <div className="panel-content"><p className="panel-muted">Tu coordinadora está preparando tu cotización personalizada.</p></div>
+    <div className="panel-content"><p className="panel-muted">Your coordinator is preparing your personalized quote.</p></div>
   )
 
   return (
@@ -192,7 +192,7 @@ function StageQuote({ latestQuote, olderQuotes }: { latestQuote: PatientQuote | 
       {olderQuotes.length > 0 && (
         <>
           <button className="show-more-btn" onClick={() => setShowOlder(!showOlder)}>
-            {showOlder ? '▲ Ocultar versiones anteriores' : `▼ Ver ${olderQuotes.length} versión${olderQuotes.length > 1 ? 'es' : ''} anterior${olderQuotes.length > 1 ? 'es' : ''}`}
+            {showOlder ? '▲ Hide previous versions' : `▼ View ${olderQuotes.length} previous version${olderQuotes.length > 1 ? 's' : ''}`}
           </button>
           {showOlder && olderQuotes.map((q) => <QuoteCard key={q.id} quote={q} />)}
         </>
@@ -212,19 +212,19 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
       </div>
 
       {quote.surgical_plan && (
-        <p className="quote-plan">Plan quirúrgico: <strong>{quote.surgical_plan}</strong></p>
+        <p className="quote-plan">Surgical plan: <strong>{quote.surgical_plan}</strong></p>
       )}
       {quote.surgical_plan_2nd && (
-        <p className="quote-plan quote-plan--secondary">Segunda fase: {quote.surgical_plan_2nd}</p>
+        <p className="quote-plan quote-plan--secondary">Second phase: {quote.surgical_plan_2nd}</p>
       )}
 
       {/* Procedimientos */}
       {quote.procedures.length > 0 && (
         <div className="quote-procedures">
-          <p className="quote-proc-title">Procedimientos incluidos</p>
+          <p className="quote-proc-title">Procedures included</p>
           {quote.procedures.map((p, i) => (
             <div key={i} className="quote-proc-row">
-              <span className="quote-proc-name">{p.product_name ?? 'Procedimiento'}</span>
+              <span className="quote-proc-name">{p.product_name ?? 'Procedure'}</span>
               {p.surgical_plan_price != null && (
                 <span className="quote-proc-price">{formatUSD(p.surgical_plan_price)}</span>
               )}
@@ -243,19 +243,19 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
         )}
         {quote.discount != null && quote.discount > 0 && (
           <div className="fin-row fin-row--discount">
-            <span>Descuento{quote.discount_reason ? ` (${quote.discount_reason})` : ''}</span>
+            <span>Discount{quote.discount_reason ? ` (${quote.discount_reason})` : ''}</span>
             <span>− {formatUSD(quote.discount)}</span>
           </div>
         )}
         {quote.tax != null && quote.tax > 0 && (
           <div className="fin-row">
-            <span>Impuestos</span>
+            <span>Taxes</span>
             <span>{formatUSD(quote.tax)}</span>
           </div>
         )}
         {quote.grand_total != null && (
           <div className="fin-row fin-row--total">
-            <span>Inversión total estimada</span>
+            <span>Estimated total investment</span>
             <span>{formatUSD(quote.grand_total)}</span>
           </div>
         )}
@@ -265,19 +265,19 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
       {(quote.hotel_nights_before || quote.hospital_nights || quote.recovery_house_nights) && (
         <div className="quote-nights">
           {quote.hotel_nights_before != null && (
-            <div className="night-chip">🏨 {quote.hotel_nights_before} noche{quote.hotel_nights_before !== 1 ? 's' : ''} antes</div>
+            <div className="night-chip">🏨 {quote.hotel_nights_before} night{quote.hotel_nights_before !== 1 ? 's' : ''} before</div>
           )}
           {quote.hospital_nights != null && (
-            <div className="night-chip">🏥 {quote.hospital_nights} noche{quote.hospital_nights !== 1 ? 's' : ''} hospital</div>
+            <div className="night-chip">🏥 {quote.hospital_nights} night{quote.hospital_nights !== 1 ? 's' : ''} hospital</div>
           )}
           {quote.recovery_house_nights != null && (
-            <div className="night-chip">🛌 {quote.recovery_house_nights} noche{quote.recovery_house_nights !== 1 ? 's' : ''} recuperación</div>
+            <div className="night-chip">🛌 {quote.recovery_house_nights} night{quote.recovery_house_nights !== 1 ? 's' : ''} recovery</div>
           )}
         </div>
       )}
 
       {quote.valid_until && (
-        <p className="quote-valid">Válida hasta: {formatDate(quote.valid_until)}</p>
+        <p className="quote-valid">Valid until: {formatDate(quote.valid_until)}</p>
       )}
     </div>
   )
@@ -286,7 +286,7 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
 function StageReview() {
   return (
     <div className="panel-content">
-      <p>Nuestro equipo médico está revisando tu expediente y preparando las recomendaciones finales. Tu coordinadora te contactará pronto para confirmar los siguientes pasos.</p>
+      <p>Our medical team is reviewing your file and preparing the final recommendations. Your coordinator will contact you soon to confirm the next steps.</p>
     </div>
   )
 }
@@ -294,8 +294,8 @@ function StageReview() {
 function StageConfirmed({ patient }: { patient: PatientProfile }) {
   return (
     <div className="panel-content">
-      <p>Tu depósito ha sido confirmado. Eres parte oficial de la familia CER. En este punto comenzamos la coordinación de tu logística de viaje y recuperación.</p>
-      {patient.surgery_plan && <p>Plan quirúrgico confirmado: <strong>{patient.surgery_plan}</strong></p>}
+      <p>Your deposit has been confirmed. You are now an official member of the CER family. At this point, we begin coordinating your travel and recovery logistics.</p>
+      {patient.surgery_plan && <p>Confirmed surgical plan: <strong>{patient.surgery_plan}</strong></p>}
     </div>
   )
 }
@@ -303,13 +303,13 @@ function StageConfirmed({ patient }: { patient: PatientProfile }) {
 function StageScheduled({ patient }: { patient: PatientProfile }) {
   return (
     <div className="panel-content">
-      <p>Tu cirugía está agendada. Por favor asegúrate de completar tu formulario de itinerario con la información de vuelo, hospedaje e identificaciones.</p>
+      <p>Your surgery is scheduled. Please be sure to complete your itinerary form with your flight, hotel, and ID information.</p>
       {patient.surgery_date && (
         <div className="info-highlight">
-          📅 Fecha de cirugía: <strong>{formatDate(patient.surgery_date)}</strong>
+          📅 Surgery Date: <strong>{formatDate(patient.surgery_date)}</strong>
         </div>
       )}
-      <p>Recibirás tus instrucciones pre-operatorias por correo electrónico la semana anterior a tu cirugía.</p>
+      <p>You will receive your pre-operative instructions by email the week before your surgery.</p>
     </div>
   )
 }
@@ -317,7 +317,7 @@ function StageScheduled({ patient }: { patient: PatientProfile }) {
 function StageSurgery({ patient }: { patient: PatientProfile }) {
   return (
     <div className="panel-content">
-      <p>¡Tu día de cirugía ha llegado! El check-in en Hospital CER es a las <strong>7:00 AM</strong>. Por favor no consumas alimentos ni líquidos después de las 12:00 AM anterior.</p>
+      <p>Your surgery day has arrived! Check-in at Hospital CER is at <strong>7:00 AM</strong>. Please do not consume food or liquids after 12:00 AM.</p>
     </div>
   )
 }
@@ -326,17 +326,17 @@ function StageSurgery({ patient }: { patient: PatientProfile }) {
 
 function SurgeryIncludes() {
   return (
-    <InfoSection title="Lo que incluye tu cirugía ✔">
+    <InfoSection title="What's Included in Your Surgery ✔">
       {[
-        'Equipo quirúrgico certificado',
-        'Laboratorios pre y post operatorios',
-        'Atención médica 24/7',
-        'Prendas de compresión',
-        'Estancia hospitalaria',
-        'Anestesia y evaluación médica',
-        'Medicamentos',
-        'Comidas durante la hospitalización',
-        'Transporte (San Diego – Tijuana)',
+        'Certified Surgical Equipment',
+        'Pre and Post-Operative Laboratories',
+        '24/7 Medical Care',
+        'Compression Garments',
+        'Hospital Stay',
+        'Anesthesia and Medical Evaluation',
+        'Medications',
+        'Meals during Hospitalization',
+        'Transportation (San Diego – Tijuana)',
       ].map((item) => (
         <div key={item} className="include-item">
           <span className="include-check">✔</span>
@@ -349,34 +349,34 @@ function SurgeryIncludes() {
 
 function PaymentOptions() {
   return (
-    <InfoSection title="Opciones de pago 💳">
+    <InfoSection title="Payment Options 💳">
       <div className="payment-grid">
         <div className="payment-item">
           <span className="payment-icon">💵</span>
           <div>
-            <p className="payment-name">Efectivo</p>
-            <p className="payment-note">Día de cirugía · Sin cargo adicional</p>
+            <p className="payment-name">Cash</p>
+            <p className="payment-note">Surgery Day · No Additional Fee</p>
           </div>
         </div>
         <div className="payment-item">
           <span className="payment-icon">🏦</span>
           <div>
             <p className="payment-name">Wire Transfer</p>
-            <p className="payment-note">1 semana antes de la cirugía</p>
+            <p className="payment-note">1 week before surgery</p>
           </div>
         </div>
         <div className="payment-item">
           <span className="payment-icon">💳</span>
           <div>
             <p className="payment-name">Visa / Mastercard</p>
-            <p className="payment-note">Cargo adicional del 3%</p>
+            <p className="payment-note">Additional charge of 3%</p>
           </div>
         </div>
         <div className="payment-item">
           <span className="payment-icon">⚡</span>
           <div>
             <p className="payment-name">Zelle®</p>
-            <p className="payment-note">3 días hábiles antes de cirugía</p>
+            <p className="payment-note">3 business days before surgery</p>
           </div>
         </div>
       </div>
@@ -387,14 +387,14 @@ function PaymentOptions() {
 function ItinerarySection({ patient }: { patient: PatientProfile }) {
   const surgDate = patient.surgery_date ? formatDate(patient.surgery_date) : '—'
   return (
-    <InfoSection title="Itinerario de tu estancia 📅">
+    <InfoSection title="Your Itinerary 📅">
       <div className="itin-days">
         {[
-          { day: 'Día 1', title: 'Llegada', desc: `Llega a San Diego entre 8:00 AM – 6:00 PM y haz check-in en tu hotel o casa de recuperación.` },
-          { day: 'Día 2', title: `Cirugía — ${surgDate}`, desc: `Check-in en el hospital a las 7:00 AM. Estancia nocturna en Hospital CER.` },
-          { day: 'Recuperación', title: 'Estancia de recuperación', desc: 'Recuperación en tu casa de recuperación u hotel seleccionado.' },
-          { day: 'Seguimiento', title: 'Cita de seguimiento', desc: 'Disponible a la 1:00 PM los lunes, miércoles y viernes.' },
-          { day: 'Partida', title: 'Regreso a casa', desc: 'Coordinado según el progreso de tu recuperación.' },
+          { day: 'Day 1', title: 'Arrival', desc: `Arrive in San Diego between 8:00 AM – 6:00 PM and check-in at your hotel or recovery house.` },
+          { day: 'Day 2', title: `Surgery — ${surgDate}`, desc: `Check-in at the hospital at 7:00 AM. Overnight stay at Hospital CER.` },
+          { day: 'Recovery', title: 'Recovery Stay', desc: 'Recovery at your selected recovery house or hotel.' },
+          { day: 'Follow-up', title: 'Follow-up Appointment', desc: 'Available at 1:00 PM on Mondays, Wednesdays, and Fridays.' },
+          { day: 'Departure', title: 'Return Home', desc: 'Coordinated based on your recovery progress.' },
         ].map((item) => (
           <div key={item.day} className="itin-day">
             <div className="itin-day-badge">{item.day}</div>
@@ -412,12 +412,12 @@ function ItinerarySection({ patient }: { patient: PatientProfile }) {
 function RecoveryPlan({ patient, latestQuote }: { patient: PatientProfile; latestQuote: PatientQuote | null }) {
   const nights = latestQuote?.recovery_house_nights ?? null
   return (
-    <InfoSection title="Tu plan de recuperación 🛌">
-      <p>Estarás con nosotros{nights ? ` ${nights} noches` : ''} después de la cirugía y serás dado de alta según tu progreso médico.</p>
-      <p>Para el período de recuperación restante, recomendamos quedarte en una casa de recuperación. Ten en cuenta que la estancia en la casa de recuperación <strong>no está incluida</strong> en tu paquete quirúrgico.</p>
-      <p>Tu coordinadora puede ayudarte a coordinar tu estancia, ya sea en un hotel o en una de nuestras casas de recuperación de confianza.</p>
+    <InfoSection title="Your Recovery Plan 🛌">
+      <p>You will be with us{nights ? ` ${nights} nights` : ''} after the surgery and will be discharged according to your medical progress.</p>
+      <p>For the remaining recovery period, we recommend staying at a recovery house. Please note that the stay at the recovery house <strong>is not included</strong> in your surgical package.</p>
+      <p>Your coordinator can help you arrange your stay, whether at a hotel or one of our trusted recovery houses.</p>
       <div className="info-highlight" style={{ marginTop: 12 }}>
-        📧 Coordinación: <strong>patientcoordinator@cergroupco.com</strong>
+        📧 Coordination: <strong>patientcoordinator@cergroupco.com</strong>
       </div>
     </InfoSection>
   )
@@ -425,24 +425,24 @@ function RecoveryPlan({ patient, latestQuote }: { patient: PatientProfile; lates
 
 function Recommendations() {
   return (
-    <InfoSection title="Recomendaciones 📋">
+    <InfoSection title="Recommendations 📋">
       <div className="rec-grid">
         <div className="rec-card">
-          <p className="rec-title">👤 Acompañante</p>
+          <p className="rec-title">👤 Companion</p>
           <div className="rec-rows">
-            <div className="rec-row"><span>Acompañantes permitidos</span><span>1</span></div>
-            <div className="rec-row"><span>Estancia nocturna en hospital</span><span>Solo 1 persona</span></div>
-            <div className="rec-row"><span>Transporte incluido</span><span>1 persona</span></div>
-            <div className="rec-row"><span>Acompañante adicional</span><span>$195 USD</span></div>
+            <div className="rec-row"><span>Allowed Companions</span><span>1</span></div>
+            <div className="rec-row"><span>Overnight Stay in Hospital</span><span>Only 1 Person</span></div>
+            <div className="rec-row"><span>Included Transportation</span><span>1 Person</span></div>
+            <div className="rec-row"><span>Additional Companion</span><span>$195 USD</span></div>
           </div>
         </div>
         <div className="rec-card">
-          <p className="rec-title">✈️ Vuelo de llegada</p>
-          <p className="rec-desc">Debe llegar entre 8:00 AM – 6:00 PM el día anterior a la cirugía. Para llegadas más tempranas, puede esperar en el aeropuerto hasta las 8:00 AM.</p>
+          <p className="rec-title">✈️ Arrival Flight</p>
+          <p className="rec-desc">Must arrive between 8:00 AM – 6:00 PM the day before surgery. For earlier arrivals, you can wait at the airport until 8:00 AM.</p>
         </div>
         <div className="rec-card">
-          <p className="rec-title">✈️ Vuelo de salida</p>
-          <p className="rec-desc">Idealmente 12:30 PM o después. El transporte se programa aproximadamente 4 horas antes. Vuelos fuera de 8:00 AM – 6:00 PM tienen cargo adicional de $55 USD.</p>
+          <p className="rec-title">✈️ Departure Flight</p>
+          <p className="rec-desc">Ideally at 12:30 PM or later. Transportation is scheduled approximately 4 hours in advance. Flights outside of 8:00 AM – 6:00 PM have an additional fee of $55 USD.</p>
         </div>
       </div>
     </InfoSection>
