@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { PatientProfile } from '@/lib/zoho/crm'
 import type { PatientQuote } from '@/lib/zoho/crm'
+import type { FinancialSummary } from '@/lib/zoho/books'
 
 // ─── Stages visibles al paciente ─────────────────────────────────
 const STAGES = [
@@ -17,6 +18,7 @@ const STAGES = [
 interface DashboardData {
   patient: PatientProfile
   quotes: PatientQuote[]
+  financial: FinancialSummary | null
 }
 
 export default function DashboardPage() {
@@ -26,9 +28,17 @@ export default function DashboardPage() {
   const [activeStage, setActiveStage] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch('/api/zoho/patient')
-      .then((r) => { if (!r.ok) throw new Error('Your information could not be loaded'); return r.json() })
-      .then((d) => setData({ patient: d.patient, quotes: d.quotes ?? [] }))
+    Promise.all([
+      fetch('/api/zoho/patient').then((r) => { if (!r.ok) throw new Error('Could not load your information'); return r.json() }),
+      fetch('/api/zoho/financial').then((r) => r.ok ? r.json() : null).catch(() => null),
+    ])
+      .then(([patientData, financialData]) => {
+        setData({
+          patient: patientData.patient,
+          quotes: patientData.quotes ?? [],
+          financial: financialData,
+        })
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [])
@@ -37,12 +47,18 @@ export default function DashboardPage() {
   if (error)   return <ErrorState msg={error} />
   if (!data)   return null
 
-  const { patient, quotes } = data
-  const latestQuote = quotes[0] ?? null
-  const olderQuotes = quotes.slice(1)
-  const stageIdx    = getStageIndex(patient.lead_stage, patient.deal_stage, patient.deal_id, patient.surgery_date, latestQuote)
-  const pStatus     = getPatientStatus(patient.lead_stage, patient.deal_stage, patient.converted)
-  const daysLeft    = getDaysUntil(patient.surgery_date)
+  const { patient, quotes, financial } = data
+  const latestQuote       = quotes[0] ?? null
+  const olderQuotes       = quotes.slice(1)
+  const depositPaid       = financial?.deposit_paid ?? 0
+  const totalQuote        = financial?.total_quote ?? 0
+  const depositPct        = totalQuote > 0 ? depositPaid / totalQuote : 0
+  const hasAnyDeposit     = depositPaid > 0
+  const hasSurgicalDeposit = depositPct >= 0.30   // 30%+
+  const stageIdx          = getStageIndex(patient.lead_stage, patient.deal_stage, patient.deal_id, patient.surgery_date, latestQuote, hasAnyDeposit)
+  const pStatus           = getPatientStatus(patient.lead_stage, patient.deal_stage, patient.converted)
+  const daysLeft          = getDaysUntil(patient.surgery_date)
+
 
   return (
     <div className="dash">
@@ -148,7 +164,7 @@ export default function DashboardPage() {
             {activeStage === 0 && <StageContact patient={patient} />}
             {activeStage === 1 && <StageQuote latestQuote={latestQuote} olderQuotes={olderQuotes} />}
             {activeStage === 2 && <StageReview />}
-            {activeStage === 3 && <StageConfirmed patient={patient} />}
+            {activeStage === 3 && <StageConfirmed patient={patient} hasSurgicalDeposit={hasSurgicalDeposit} depositPct={depositPct} />}
             {activeStage === 4 && <StageScheduled patient={patient} />}
             {activeStage === 5 && <StageSurgery patient={patient} />}
           </div>
@@ -220,7 +236,7 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
         <p className="quote-plan">Surgical plan: <strong>{quote.surgical_plan}</strong></p>
       )}
       {quote.surgical_plan_2nd && (
-        <p className="quote-plan quote-plan--secondary">Second phase: {quote.surgical_plan_2nd}</p>
+        <p className="quote-plan quote-plan--secondary">Second phase: {quote.surgical_plan_2nd}<br></br><br></br></p>
       )}
 
       {/* Procedimientos */}
@@ -302,11 +318,37 @@ function StageReview() {
   )
 }
 
-function StageConfirmed({ patient }: { patient: PatientProfile }) {
+function StageConfirmed({
+  patient,
+  hasSurgicalDeposit,
+  depositPct,
+}: {
+  patient: PatientProfile
+  hasSurgicalDeposit: boolean
+  depositPct: number
+}) {
+  const pctDisplay = Math.round(depositPct * 100)
+
   return (
     <div className="panel-content">
-      <p>Your deposit has been confirmed. You are now an official member of the CER family. At this point, we begin coordinating your travel and recovery logistics.</p>
-      {patient.surgery_plan && <p>Confirmed surgical plan: <strong>{patient.surgery_plan}</strong></p>}
+      {hasSurgicalDeposit ? (
+        <>
+          <p>Your surgical deposit has been confirmed. You are now an official member of the CER family. At this point, we begin coordinating your travel and recovery logistics.</p>
+          {patient.surgery_plan && (
+            <p>Confirmed surgical plan: <strong>{patient.surgery_plan}</strong></p>
+          )}
+        </>
+      ) : (
+        <>
+          <p>We have received your deposit ({pctDisplay}% of your total). Your coordinator is working on the final details of your surgical plan. The full surgical deposit (30%) is required to confirm your surgery date.</p>
+          {patient.surgery_plan && (
+            <p>Surgical plan: <strong>{patient.surgery_plan}</strong></p>
+          )}
+        </>
+      )}
+      <div className="info-highlight">
+        📋 Questions about your deposit? Contact your coordinator directly.
+      </div>
     </div>
   )
 }
@@ -475,15 +517,19 @@ function getStageIndex(
   dealStage: string | null,
   dealId: string | null,
   surgeryDate: string | null,
-  latestQuote: PatientQuote | null
+  latestQuote: PatientQuote | null,
+  hasAnyDeposit: boolean        // ← nuevo param
 ): number {
   const hasDeal = !!dealId
 
   if (hasDeal) {
-    if (dealStage === 'Closed Won')         return 5
-    if (dealStage === 'Surgery Scheduled')  return 4
+    if (dealStage === 'Closed Won')                             return 5
+    if (dealStage === 'Surgery Scheduled')                      return 4
     if (surgeryDate && getDaysUntil(surgeryDate) !== null && getDaysUntil(surgeryDate)! >= 0) return 4
-    return 3
+    // Confirmed solo cuando hay depósito, sin importar el monto
+    if (hasAnyDeposit)                                          return 3
+    // Deal existe pero sin depósito → Review
+    return 2
   }
 
   // Sin Deal — usa lead stage y quote stage
@@ -556,7 +602,7 @@ function ErrorState({ msg }: { msg: string }) {
   )
 }
 
-const PAUSED_LEAD   = new Set(['On Hold', 'No Response', 'Nurturing', 'Reactivation Pool', 'Reactivated - Email'])
+const PAUSED_LEAD   = new Set(['On Hold', 'No Response', 'Reactivation Pool', 'Reactivated - Email'])
 const INACTIVE_LEAD = new Set(['Not interested', 'Not a Candidate', 'Do Not Contact - HIPAA Compliant'])
 
 // ─── Styles ──────────────────────────────────────────────────────
