@@ -525,7 +525,7 @@ function getDaysUntil(dateStr: string | null): number | null {
 }
 
 function formatDate(str: string): string {
-  return new Date(str).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+  return new Date(str).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })
 }
 
 function formatUSD(n: number): string {
