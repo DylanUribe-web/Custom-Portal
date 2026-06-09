@@ -172,9 +172,9 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Secciones de información estática / semi-dinámica ── */}
+      {patient.surgery_date && <ItinerarySection patient={patient} />} // Solo se muestre el itinerario si ya hay fecha de cirugía
       <SurgeryIncludes />
       <PaymentOptions />
-      {patient.surgery_date && <ItinerarySection patient={patient} />}
       <RecoveryPlan patient={patient} latestQuote={latestQuote} />
       <Recommendations />
 
@@ -376,6 +376,30 @@ function StageSurgery({ patient }: { patient: PatientProfile }) {
 }
 
 // ─── Secciones estáticas / semi-dinámicas ────────────────────────
+function ItinerarySection({ patient }: { patient: PatientProfile }) {
+  const surgDate = patient.surgery_date ? formatDate(patient.surgery_date) : '—'
+  return (
+    <InfoSection title="Your Itinerary 📅">
+      <div className="itin-days">
+        {[
+          { day: 'Day 1', title: 'Arrival', desc: `Arrive in San Diego between 8:00 AM – 6:00 PM and check-in at your hotel or recovery house.` },
+          { day: 'Day 2', title: `Surgery — ${surgDate}`, desc: `Check-in at the hospital at 7:00 AM. Overnight stay at Hospital CER.` },
+          { day: 'Recovery', title: 'Recovery Stay', desc: 'Recovery at your selected recovery house or hotel.' },
+          { day: 'Follow-up', title: 'Follow-up Appointment', desc: 'Available at 1:00 PM on Mondays, Wednesdays, and Fridays.' },
+          { day: 'Departure', title: 'Return Home', desc: 'Coordinated based on your recovery progress.' },
+        ].map((item) => (
+          <div key={item.day} className="itin-day">
+            <div className="itin-day-badge">{item.day}</div>
+            <div>
+              <p className="itin-day-title">{item.title}</p>
+              <p className="itin-day-desc">{item.desc}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </InfoSection>
+  )
+}
 
 function SurgeryIncludes() {
   return (
@@ -432,31 +456,6 @@ function PaymentOptions() {
             <p className="payment-note">3 business days before surgery</p>
           </div>
         </div>
-      </div>
-    </InfoSection>
-  )
-}
-
-function ItinerarySection({ patient }: { patient: PatientProfile }) {
-  const surgDate = patient.surgery_date ? formatDate(patient.surgery_date) : '—'
-  return (
-    <InfoSection title="Your Itinerary 📅">
-      <div className="itin-days">
-        {[
-          { day: 'Day 1', title: 'Arrival', desc: `Arrive in San Diego between 8:00 AM – 6:00 PM and check-in at your hotel or recovery house.` },
-          { day: 'Day 2', title: `Surgery — ${surgDate}`, desc: `Check-in at the hospital at 7:00 AM. Overnight stay at Hospital CER.` },
-          { day: 'Recovery', title: 'Recovery Stay', desc: 'Recovery at your selected recovery house or hotel.' },
-          { day: 'Follow-up', title: 'Follow-up Appointment', desc: 'Available at 1:00 PM on Mondays, Wednesdays, and Fridays.' },
-          { day: 'Departure', title: 'Return Home', desc: 'Coordinated based on your recovery progress.' },
-        ].map((item) => (
-          <div key={item.day} className="itin-day">
-            <div className="itin-day-badge">{item.day}</div>
-            <div>
-              <p className="itin-day-title">{item.title}</p>
-              <p className="itin-day-desc">{item.desc}</p>
-            </div>
-          </div>
-        ))}
       </div>
     </InfoSection>
   )
