@@ -338,11 +338,11 @@ export default function FinancialPage() {
 
 // ─── Helpers ──────────────────────────────────────────────────────
 const INVOICE_STATUS: Record<string, { label: string; color: string; bg: string; icon: string }> = {
-  paid:             { label: 'Pagada',           color: '#4ade80', bg: 'rgba(74,222,128,0.08)',  icon: '✓' },
-  unpaid:           { label: 'Pendiente',        color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  icon: '◷' },
-  partially_paid:   { label: 'Pago parcial',     color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  icon: '◑' },
-  void:             { label: 'Cancelada',        color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', icon: '✕' },
-  default:          { label: 'Pendiente',        color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  icon: '◷' },
+  paid:             { label: 'Paid',           color: '#4ade80', bg: 'rgba(74,222,128,0.08)',  icon: '✓' },
+  unpaid:           { label: 'Unpaid',         color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  icon: '◷' },
+  partially_paid:   { label: 'Partially Paid',     color: '#60a5fa', bg: 'rgba(96,165,250,0.08)',  icon: '◑' },
+  void:             { label: 'Void',           color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', icon: '✕' },
+  default:          { label: 'Pending',          color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  icon: '◷' },
 }
 
 function formatUSD(amount: number): string {

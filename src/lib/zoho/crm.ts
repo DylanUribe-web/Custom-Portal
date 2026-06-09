@@ -398,11 +398,13 @@ export interface PatientQuote {
   id: string
   subject: string
   quote_stage: string
+  Doctor_Assigned: string | null
   created_time: string | null
   valid_until: string | null
   grand_total: number | null
   sub_total: number | null
-  discount: number | null
+  Adjustment: number | null
+  Discount_Amount: number | null
   tax: number | null
   discount_reason: string | null
   surgical_plan: string | null
@@ -418,15 +420,16 @@ export interface QuoteProcedure {
   product_type: string | null
   surgical_plan_price: number | null
   quantity: number | null
-  discount: number | null
+  discount_amount: number | null
   net_total: number | null
 }
 
 const QUOTE_FIELDS = [
   'Subject', 'Quote_Stage', 'Created_Time', 'Valid_Until',
-  'Grand_Total', 'Sub_Total', 'Discount', 'Tax', 'Adjustment',
+  'Grand_Total', 'Sub_Total', 'Discount_Amount', 'Tax', 'Adjustment',
   'Discount_Reason', 'Surgical_Plan', 'Surgical_Plan_2nd_phase',
   'Hotel_Nights_Before_Surgery', 'Hospital_Nights', 'Recovery_House_Nights',
+  'Doctor_Assigned',
 ].join(',')
 
 // Intenta ambos nombres de related list (Leads usa "Quotes.", Contacts usa "Quotes")
@@ -453,13 +456,15 @@ function mapQuote(q: any): PatientQuote {
 
   return {
     id: q.id,
-    subject: q.Subject ?? 'Cotización',
+    subject: q.Subject ?? 'Quote',
     quote_stage: q.Quote_Stage ?? 'Draft',
+    Doctor_Assigned: q.Doctor_Assigned ?? null,
     created_time: q.Created_Time ?? null,
     valid_until: q.Valid_Until ?? null,
     grand_total: q.Grand_Total ?? null,
     sub_total: q.Sub_Total ?? null,
-    discount: q.Discount ?? null,
+    Adjustment: q.Adjustment ?? null,
+    Discount_Amount: q.Discount_Amount ?? null,
     tax: q.Tax ?? null,
     discount_reason: q.Discount_Reason ?? null,
     surgical_plan: q.Surgical_Plan ?? null,
@@ -472,7 +477,7 @@ function mapQuote(q: any): PatientQuote {
       product_type: p.Product_Type ?? null,
       surgical_plan_price: p.Surgical_Plan_Price ?? null,
       quantity: p.Quantity ?? null,
-      discount: p.Discount ?? null,
+      discount_amount: p.Discount_Amount ?? null,
       net_total: p.Net_Total ?? null,
     })),
   }

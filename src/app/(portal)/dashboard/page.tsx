@@ -115,41 +115,44 @@ export default function DashboardPage() {
       {/* ── Stage Tracker (clickable) ── */}
       <div className="stage-section">
         <h2 className="section-title">Your process</h2>
+
         <div className="stepper">
           {STAGES.map((s, i) => {
-            const state = i < stageIdx ? 'done' : i === stageIdx ? 'active' : 'pending'
-            const isOpen = activeStage === i
-            const clickable = i <= stageIdx  // stages pasadas y actual son revisitables
+            const state     = i < stageIdx ? 'done' : i === stageIdx ? 'active' : 'pending'
+            const isOpen    = activeStage === i
+            const clickable = i <= stageIdx
             return (
               <div key={s.key} className="step-wrap">
                 <button
-                  className={`step step--${state} ${clickable ? 'step--clickable' : ''}`}
+                  className={`step step--${state} ${clickable ? 'step--clickable' : ''} ${isOpen ? 'step--open' : ''}`}
                   onClick={() => clickable && setActiveStage(isOpen ? null : i)}
                   disabled={!clickable}
                 >
                   <div className="step-circle">{state === 'done' ? '✓' : s.icon}</div>
                   <span className="step-label">{s.label}</span>
                   {clickable && <span className="step-chevron">{isOpen ? '▲' : '▼'}</span>}
-                  {i < STAGES.length - 1 && (
-                    <div className={`step-line step-line--${state === 'done' ? 'done' : 'pending'}`} />
-                  )}
                 </button>
-
-                {/* Panel expandible por stage */}
-                {isOpen && (
-                  <div className="stage-panel">
-                    {i === 0 && <StageContact patient={patient} />}
-                    {i === 1 && <StageQuote latestQuote={latestQuote} olderQuotes={olderQuotes} />}
-                    {i === 2 && <StageReview />}
-                    {i === 3 && <StageConfirmed patient={patient} />}
-                    {i === 4 && <StageScheduled patient={patient} />}
-                    {i === 5 && <StageSurgery patient={patient} />}
-                  </div>
-                )}
               </div>
             )
           })}
         </div>
+
+        {/* Panel ancho completo con flecha apuntando al step activo */}
+        {activeStage !== null && (
+          <div
+            className="stage-panel"
+            style={{
+              '--arrow-left': `calc(${(activeStage + 0.5) / STAGES.length * 100}% - 8px)`,
+            } as React.CSSProperties}
+          >
+            {activeStage === 0 && <StageContact patient={patient} />}
+            {activeStage === 1 && <StageQuote latestQuote={latestQuote} olderQuotes={olderQuotes} />}
+            {activeStage === 2 && <StageReview />}
+            {activeStage === 3 && <StageConfirmed patient={patient} />}
+            {activeStage === 4 && <StageScheduled patient={patient} />}
+            {activeStage === 5 && <StageSurgery patient={patient} />}
+          </div>
+        )}
       </div>
 
       {/* ── Secciones de información estática / semi-dinámica ── */}
@@ -211,6 +214,8 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
         </span>
       </div>
 
+      <p className="quote-plan">Doctor assigned: <strong>{quote.Doctor_Assigned}</strong></p>
+
       {quote.surgical_plan && (
         <p className="quote-plan">Surgical plan: <strong>{quote.surgical_plan}</strong></p>
       )}
@@ -241,10 +246,16 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
             <span>{formatUSD(quote.sub_total)}</span>
           </div>
         )}
-        {quote.discount != null && quote.discount > 0 && (
+        {quote.Adjustment != null && quote.Adjustment > 0 && (
+          <div className="fin-row fin-row--adjustment">
+            <span>Adjustment</span>
+            <span>+ {formatUSD(quote.Adjustment)}</span>
+          </div>
+        )}
+        {quote.Discount_Amount != null && quote.Discount_Amount > 0 && (
           <div className="fin-row fin-row--discount">
             <span>Discount{quote.discount_reason ? ` (${quote.discount_reason})` : ''}</span>
-            <span>− {formatUSD(quote.discount)}</span>
+            <span>− {formatUSD(quote.Discount_Amount)}</span>
           </div>
         )}
         {quote.tax != null && quote.tax > 0 && (
@@ -437,11 +448,11 @@ function Recommendations() {
           </div>
         </div>
         <div className="rec-card">
-          <p className="rec-title">✈️ Arrival Flight</p>
+          <p className="rec-title">🛬 Arrival Flight</p>
           <p className="rec-desc">Must arrive between 8:00 AM – 6:00 PM the day before surgery. For earlier arrivals, you can wait at the airport until 8:00 AM.</p>
         </div>
         <div className="rec-card">
-          <p className="rec-title">✈️ Departure Flight</p>
+          <p className="rec-title">🛫 Departure Flight</p>
           <p className="rec-desc">Ideally at 12:30 PM or later. Transportation is scheduled approximately 4 hours in advance. Flights outside of 8:00 AM – 6:00 PM have an additional fee of $55 USD.</p>
         </div>
       </div>
@@ -607,9 +618,43 @@ const dashStyles = `
 
   .step-chevron { font-size: 9px; color: rgba(255,255,255,.25); }
 
-  /* Stage panels */
-  .stage-panel { margin-top: 4px; background: rgba(0,47,125,.12); border: 1px solid rgba(0,196,204,.12); border-radius: 12px; padding: 16px; font-size: 14px; color: rgba(255,255,255,.7); line-height: 1.65; }
+  /* Step activo/abierto — resalta el borde inferior */
+  .step--open {
+    border-color: rgba(0,196,204,.3) !important;
+    border-bottom-color: transparent !important;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background: rgba(0,47,125,.2) !important;
+  }
 
+  /* Panel a ancho completo con flecha apuntando al step activo */
+  .stage-panel {
+    position: relative;
+    margin-top: 4px;
+    background: rgba(0,47,125,.12);
+    border: 1px solid rgba(0,196,204,.15);
+    border-radius: 14px;
+    padding: 20px 24px;
+    font-size: 14px;
+    color: rgba(255,255,255,.7);
+    line-height: 1.65;
+    box-sizing: border-box;
+  }
+
+  /* Flecha apuntando hacia arriba, al step activo */
+  .stage-panel::before {
+    content: '';
+    position: absolute;
+    top: -9px;
+    left: var(--arrow-left, 50%);
+    width: 16px;
+    height: 16px;
+    background: rgba(0,47,125,.25);
+    border-left: 1px solid rgba(0,196,204,.15);
+    border-top: 1px solid rgba(0,196,204,.15);
+    transform: rotate(45deg);
+    border-radius: 2px 0 0 0;
+  }
   .panel-content { display: flex; flex-direction: column; gap: 12px; }
   .panel-muted   { color: rgba(255,255,255,.4); font-size: 13px; }
 

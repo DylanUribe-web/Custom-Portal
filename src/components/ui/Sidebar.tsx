@@ -57,7 +57,7 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
             <div className="user-info">
               <span className="user-email">{userEmail}</span>
               <button onClick={handleLogout} className="logout-btn">
-                Cerrar sesión
+                Close Session
               </button>
             </div>
           </div>
