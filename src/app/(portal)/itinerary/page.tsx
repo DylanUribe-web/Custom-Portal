@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { SurgeryRecord, SurgeryUpdatePayload } from '@/lib/zoho/surgery'
 
 // ── Picklist values — actualiza con los valores exactos de CRM ────
@@ -594,10 +594,26 @@ function NumberInput({ label, value, onChange, disabled }: {
 function DateTimeInput({ label, value, onChange, disabled }: {
   label: string; value: string; onChange: (v: string) => void; disabled?: boolean
 }) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleClick = () => {
+    if (disabled) return
+    inputRef.current?.showPicker?.()
+  }
+
   return (
     <div className="field-wrapper">
       <label>{label}</label>
-      <input type="datetime-local" value={value ? value.slice(0, 16) : ''} onChange={(e) => onChange(e.target.value)} disabled={disabled} className="field-input" />
+      <input
+        ref={inputRef}
+        type="datetime-local"
+        lang="en-US"
+        value={value ? value.slice(0, 16) : ''}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={handleClick}
+        disabled={disabled}
+        className="field-input"
+      />
     </div>
   )
 }
@@ -717,7 +733,7 @@ function ErrorState({ message }: { message: string }) {
 }
 
 function formatDate(str: string) {
-  return new Date(str).toLocaleDateString('es-MX', {
+  return new Date(str).toLocaleDateString('en-US', {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
@@ -1023,6 +1039,21 @@ const itinStyles = `
   .field-input:disabled { opacity: 0.4; cursor: not-allowed; }
   .field-select { background: rgb(26, 35, 54); color: white; cursor: pointer; }
   .field-input::placeholder { color: rgba(255,255,255,0.2); }
+
+  /* Native date/time picker icon */
+  .field-input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(1.4);
+  }
+  .field-input[type="datetime-local"]::-webkit-datetime-edit,
+  .field-input[type="datetime-local"]::-webkit-datetime-edit-fields-wrapper {
+    color: white;
+  }
+  .field-input[type="datetime-local"]::-moz-calendar-picker-indicator {
+    filter: invert(1) brightness(1.4);
+  }
+  .field-input[type="datetime-local"] {
+    cursor: pointer;
+  }
 
   /* Radio group */
   .radio-group {

@@ -355,7 +355,7 @@ function formatUSD(amount: number): string {
 }
 
 function formatDate(str: string): string {
-  return new Date(str).toLocaleDateString('es-MX', {
+  return new Date(str).toLocaleDateString('en-US', {
     day: 'numeric', month: 'short', year: 'numeric',
   })
 }
