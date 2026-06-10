@@ -17,7 +17,7 @@ export async function GET() {
 
   const [documents, surgeryConfirmations] = await Promise.all([
     getPatientDocuments({
-      email: user.email,          // ← nuevo parámetro
+      email: user.email,         
       lead_id: patient.lead_id,
       contact_id: patient.contact_id,
       deal_id: patient.deal_id,

@@ -172,7 +172,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Secciones de información estática / semi-dinámica ── */}
-      {patient.surgery_date && <ItinerarySection patient={patient} />} // Solo se muestre el itinerario si ya hay fecha de cirugía
+      {patient.surgery_date && <ItinerarySection patient={patient} />} {/* Solo muestra el itinerario si ya hay fecha de cirugía */}
       <SurgeryIncludes />
       <PaymentOptions />
       <RecoveryPlan patient={patient} latestQuote={latestQuote} />

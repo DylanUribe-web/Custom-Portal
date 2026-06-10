@@ -11,7 +11,6 @@ interface DocsResponse {
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: string }> = {
   'Signed':            { label: 'Signed',          color: '#4ade80', bg: 'rgba(74,222,128,0.08)',  icon: '✓' },
   'Out for Signature': { label: 'Pending Signature',  color: '#fbbf24', bg: 'rgba(251,191,36,0.08)',  icon: '⏳' },
-  'Drafted':           { label: 'Draft',         color: '#94a3b8', bg: 'rgba(148,163,184,0.08)', icon: '◻' },
   'Recalled':          { label: 'Recalled',        color: '#f87171', bg: 'rgba(248,113,113,0.08)', icon: '✕' },
   'Expired':           { label: 'Expired',         color: '#f87171', bg: 'rgba(248,113,113,0.08)', icon: '!' },
 }
@@ -43,9 +42,8 @@ export default function DocumentsPage() {
   const PRIORITY: Record<string, number> = {
     'Out for Signature': 0,
     'Signed':            1,
-    'Drafted':           2,
-    'Expired':           3,
-    'Recalled':          4,
+    'Expired':           2,
+    'Recalled':          3,
   }
 
   const documents = [...rawDocs].sort((a, b) =>
@@ -54,7 +52,8 @@ export default function DocumentsPage() {
 
   // Documentos activos vs histórico
   const activeDocs = documents.filter(
-    (d) => d.status !== 'Recalled' && d.status !== 'Expired'
+    (d) => d.status !== 'Recalled' && d.status !== 'Expired' && d.status !== 'Drafted'
+
   )
 
   const historyDocs = documents.filter(
@@ -62,9 +61,12 @@ export default function DocumentsPage() {
   )
 
   // Resumen
-  const signed  = documents.filter((d) => d.status === 'Signed').length
-  const pending = documents.filter((d) => d.status === 'Out for Signature').length
-  const total   = documents.length
+  const visibleDocuments = documents.filter(
+    doc => doc.status !== 'Drafted'
+  )
+  const total = visibleDocuments.length
+  const signed  = visibleDocuments.filter((d) => d.status === 'Signed').length
+  const pending = visibleDocuments.filter((d) => d.status === 'Out for Signature').length
 
   return (
     <div className="docs-page">
