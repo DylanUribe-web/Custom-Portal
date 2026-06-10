@@ -148,27 +148,25 @@ export default function DashboardPage() {
                   <span className="step-label">{s.label}</span>
                   {clickable && <span className="step-chevron">{isOpen ? '▲' : '▼'}</span>}
                 </button>
+                {isOpen && (
+                  <div
+                    className="stage-panel"
+                    style={{
+                      '--arrow-left': `calc(${(i + 0.5) / STAGES.length * 100}% - 8px)`,
+                    } as React.CSSProperties}
+                  >
+                    {i === 0 && <StageContact patient={patient} />}
+                    {i === 1 && <StageQuote latestQuote={latestQuote} olderQuotes={olderQuotes} />}
+                    {i === 2 && <StageReview />}
+                    {i === 3 && <StageConfirmed patient={patient} hasSurgicalDeposit={hasSurgicalDeposit} depositPct={depositPct} />}
+                    {i === 4 && <StageScheduled patient={patient} />}
+                    {i === 5 && <StageSurgery patient={patient} />}
+                  </div>
+                )}
               </div>
             )
           })}
         </div>
-
-        {/* Panel ancho completo con flecha apuntando al step activo */}
-        {activeStage !== null && (
-          <div
-            className="stage-panel"
-            style={{
-              '--arrow-left': `calc(${(activeStage + 0.5) / STAGES.length * 100}% - 8px)`,
-            } as React.CSSProperties}
-          >
-            {activeStage === 0 && <StageContact patient={patient} />}
-            {activeStage === 1 && <StageQuote latestQuote={latestQuote} olderQuotes={olderQuotes} />}
-            {activeStage === 2 && <StageReview />}
-            {activeStage === 3 && <StageConfirmed patient={patient} hasSurgicalDeposit={hasSurgicalDeposit} depositPct={depositPct} />}
-            {activeStage === 4 && <StageScheduled patient={patient} />}
-            {activeStage === 5 && <StageSurgery patient={patient} />}
-          </div>
-        )}
       </div>
 
       {/* ── Secciones de información estática / semi-dinámica ── */}
@@ -646,8 +644,18 @@ const dashStyles = `
   .section-title { font-family: var(--font-epilogue,'Epilogue',sans-serif); font-size: 18px; font-weight: 600; color: white; margin: 0 0 20px; letter-spacing: -.01em; }
 
   /* Stepper */
-  .stepper { display: flex; flex-wrap: wrap; gap: 8px; }
-  .step-wrap { display: flex; flex-direction: column; flex: 1; min-width: 110px; }
+  .stepper { 
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
+  }
+  .step-wrap { 
+    display: flex; 
+    flex-direction: column;
+  }
+  .step-wrap:has(> .stage-panel) {
+    grid-column: 1 / -1;
+  }
 
   .step { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: 12px; border: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.02); cursor: default; text-align: center; transition: all .15s; position: relative; }
   .step--clickable { cursor: pointer; }
@@ -666,39 +674,33 @@ const dashStyles = `
   /* Step activo/abierto — resalta el borde inferior */
   .step--open {
     border-color: rgba(0,196,204,.3) !important;
-    border-bottom-color: transparent !important;
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
     background: rgba(0,47,125,.2) !important;
   }
 
   /* Panel a ancho completo con flecha apuntando al step activo */
   .stage-panel {
     position: relative;
-    margin-top: 4px;
+    margin-top: -16px;
     background: rgba(0,47,125,.12);
     border: 1px solid rgba(0,196,204,.15);
-    border-radius: 14px;
+    border-top: none;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 14px;
+    border-bottom-right-radius: 14px;
     padding: 20px 24px;
     font-size: 14px;
     color: rgba(255,255,255,.7);
     line-height: 1.65;
     box-sizing: border-box;
+    width: 100%;
   }
 
   /* Flecha apuntando hacia arriba, al step activo */
   .stage-panel::before {
-    content: '';
-    position: absolute;
-    top: -9px;
-    left: var(--arrow-left, 50%);
-    width: 16px;
-    height: 16px;
-    background: rgba(0,47,125,.25);
-    border-left: 1px solid rgba(0,196,204,.15);
-    border-top: 1px solid rgba(0,196,204,.15);
-    transform: rotate(45deg);
-    border-radius: 2px 0 0 0;
+    display: none;
   }
   .panel-content { display: flex; flex-direction: column; gap: 12px; }
   .panel-muted   { color: rgba(255,255,255,.4); font-size: 13px; }
@@ -778,7 +780,19 @@ const dashStyles = `
     .dash-title { font-size: 24px; }
     .info-grid  { grid-template-columns: 1fr 1fr; }
     .stepper    { flex-direction: column; }
-    .step-wrap  { min-width: unset; }
-    .step       { flex-direction: row; text-align: left; justify-content: flex-start; }
+    .step-wrap  { 
+      min-width: unset;
+      width: 100%;
+    }
+    .step       { 
+      flex-direction: row; 
+      text-align: left; 
+      justify-content: flex-start; 
+    }
+    .stage-panel {
+      margin-top: 8px;
+      margin-left: 0;
+      margin-right: 0;
+    }
   }
 `
