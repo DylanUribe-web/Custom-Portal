@@ -161,17 +161,17 @@ function DocCard({ doc }: { doc: ZohoSignDoc }) {
           <div className="doc-meta">
             {doc.sent_date && (
               <span className="meta-item">
-                Enviado: {formatDate(doc.sent_date)}
+                Sent: {formatDate(doc.sent_date)}
               </span>
             )}
             {doc.deadline && (
               <span className={`meta-item ${isExpiringSoon(doc.deadline) ? 'meta-item--warn' : ''}`}>
-                Vence: {formatDate(doc.deadline)}
+                Expires: {formatDate(doc.deadline)}
               </span>
             )}
             {doc.completed_date && (
               <span className="meta-item meta-item--success">
-                Firmado: {formatDate(doc.completed_date)}
+                Signed: {formatDate(doc.completed_date)}
               </span>
             )}
             {doc.sent_from_module && (
@@ -211,7 +211,7 @@ function SurgeryConfirmationCard({ record }: { record: SurgeryConfirmationDoc })
         </div>
       </div>
       <div className="doc-status-badge" style={{ background: 'rgba(0,196,204,0.08)', color: '#00c4cc' }}>
-        {record.status || 'Recibido'}
+        {record.status || 'Received'}
       </div>
     </div>
   )
@@ -219,8 +219,8 @@ function SurgeryConfirmationCard({ record }: { record: SurgeryConfirmationDoc })
 
 // ─── Helpers ──────────────────────────────────────────────────────
 function formatDate(str: string): string {
-  return new Date(str).toLocaleDateString('es-MX', {
-    day: 'numeric', month: 'short', year: 'numeric',
+  return new Date(str).toLocaleDateString('en-US', {
+    day: 'numeric', month: 'long', year: 'numeric',
   })
 }
 

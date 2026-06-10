@@ -63,6 +63,8 @@ export default function ItineraryPage() {
         ? surgery.stay_after_surgery : ''
     )
   const [uploadingField, setUploadingField] = useState<string | null>(null)
+  const [fileNames, setFileNames] = useState<Record<string, string>>({})
+  const [justReplaced, setJustReplaced] = useState<Record<string, boolean>>({})
 
   useEffect(() => {
     fetch('/api/zoho/surgery')
@@ -147,12 +149,32 @@ export default function ItineraryPage() {
 
   async function handleFileUpload(fieldKey: string, file: File) {
     setUploadingField(fieldKey)
+    const wasReplacing = surgery ? (
+      fieldKey === 'patient_id' && surgery.has_patient_id ||
+      fieldKey === 'companion_id' && surgery.has_companion_id ||
+      fieldKey === 'lab_results' && surgery.has_lab_results ||
+      fieldKey === 'flight_arrival' && surgery.has_flight_details_arrival ||
+      fieldKey === 'flight_departure' && surgery.has_flight_details_departure
+    ) : false
+    
     const fd = new FormData()
     fd.append('field', fieldKey)
     fd.append('file', file)
     const res = await fetch('/api/zoho/surgery/files', { method: 'POST', body: fd })
     setUploadingField(null)
+    
     if (res.ok) {
+      // Guarda el nombre del archivo
+      setFileNames(prev => ({ ...prev, [fieldKey]: file.name }))
+      
+      // Marca que fue reemplazado
+      if (wasReplacing) {
+        setJustReplaced(prev => ({ ...prev, [fieldKey]: true }))
+        setTimeout(() => {
+          setJustReplaced(prev => ({ ...prev, [fieldKey]: false }))
+        }, 3000)
+      }
+      
       // Marca el archivo como subido
       setSurgery((prev) => {
         if (!prev) return prev
@@ -174,6 +196,11 @@ export default function ItineraryPage() {
   const isByPlane   = form.patient_arrival_method === '✈️ By Plane'
   const hasCompanion = form.companion_during_surgery === 'Yes'
   const isReadOnly  = surgery.status === 'completed' || surgery.status === 'cancelled'
+
+  // ── Calcular estado de secciones visibles ──
+  const sectionStates = calculateSectionStates(form, surgery, isByPlane, hasCompanion)
+  const visibleBadges = getVisibleBadges(isByPlane, hasCompanion)
+  const progressPercent = calculateProgressPercent(sectionStates)
 
   return (
     <div className="itin-page">
@@ -211,11 +238,24 @@ export default function ItineraryPage() {
 
       {/* Progress chips */}
       <div className="progress-chips">
-        <ProgressChip label="Patient ID"   done={surgery.has_patient_id} />
-        <ProgressChip label="Labs"              done={surgery.has_lab_results} />
-        <ProgressChip label="Arrival Flight"     done={surgery.has_flight_details_arrival || !isByPlane} />
-        <ProgressChip label="Departure Flight"      done={surgery.has_flight_details_departure || !isByPlane} />
-        <ProgressChip label="Companion ID"    done={!hasCompanion || surgery.has_companion_id} />
+        {visibleBadges.map(badge => {
+          const state = sectionStates[badge.key]
+          return (
+            <ProgressChip 
+              key={badge.key}
+              label={badge.label}
+              state={state}
+            />
+          )
+        })}
+      </div>
+
+      {/* Progress bar */}
+      <div className="progress-bar-container">
+        <div className="progress-bar-track">
+          <div className="progress-bar-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+        <span className="progress-bar-text">{progressPercent}% completado</span>
       </div>
 
       {/* ── SECCIÓN 1: Método de llegada ── */}
@@ -243,6 +283,8 @@ export default function ItineraryPage() {
             label="Flight Itinerary (Arrival)"
             fieldKey="flight_arrival"
             hasFile={surgery.has_flight_details_arrival}
+            fileName={fileNames['flight_arrival']}
+            justReplaced={justReplaced['flight_arrival']}
             onUpload={handleFileUpload}
             uploading={uploadingField === 'flight_arrival'}
             disabled={isReadOnly}
@@ -264,6 +306,8 @@ export default function ItineraryPage() {
             label="Flight Itinerary (Departure)"
             fieldKey="flight_departure"
             hasFile={surgery.has_flight_details_departure}
+            fileName={fileNames['flight_departure']}
+            justReplaced={justReplaced['flight_departure']}
             onUpload={handleFileUpload}
             uploading={uploadingField === 'flight_departure'}
             disabled={isReadOnly}
@@ -401,6 +445,8 @@ export default function ItineraryPage() {
           label="Upload Laboratory Results"
           fieldKey="lab_results"
           hasFile={surgery.has_lab_results}
+          fileName={fileNames['lab_results']}
+          justReplaced={justReplaced['lab_results']}
           onUpload={handleFileUpload}
           uploading={uploadingField === 'lab_results'}
           disabled={isReadOnly}
@@ -451,6 +497,8 @@ export default function ItineraryPage() {
             label="Patient ID"
             fieldKey="patient_id"
             hasFile={surgery.has_patient_id}
+            fileName={fileNames['patient_id']}
+            justReplaced={justReplaced['patient_id']}
             onUpload={handleFileUpload}
             uploading={uploadingField === 'patient_id'}
             disabled={isReadOnly}
@@ -460,6 +508,8 @@ export default function ItineraryPage() {
               label="Companion ID"
               fieldKey="companion_id"
               hasFile={surgery.has_companion_id}
+              fileName={fileNames['companion_id']}
+              justReplaced={justReplaced['companion_id']}
               onUpload={handleFileUpload}
               uploading={uploadingField === 'companion_id'}
               disabled={isReadOnly}
@@ -578,10 +628,12 @@ function RadioGroup({ name, options, value, onChange, disabled }: {
   )
 }
 
-function FileUploadField({ label, fieldKey, hasFile, onUpload, uploading, disabled }: {
+function FileUploadField({ label, fieldKey, hasFile, fileName, justReplaced, onUpload, uploading, disabled }: {
   label: string
   fieldKey: string
   hasFile: boolean
+  fileName?: string
+  justReplaced?: boolean
   onUpload: (key: string, file: File) => Promise<void>
   uploading: boolean
   disabled?: boolean
@@ -591,9 +643,12 @@ function FileUploadField({ label, fieldKey, hasFile, onUpload, uploading, disabl
       <label>{label}</label>
       <div className={`file-zone ${hasFile ? 'file-zone--done' : ''}`}>
         {hasFile ? (
-          <div className="file-done">
+          <div className={`file-done ${justReplaced ? 'file-done--replaced' : ''}`}>
             <span className="file-done-icon">✓</span>
-            <span>File received</span>
+            <div className="file-done-content">
+              <span className="file-done-name">{fileName || 'File received'}</span>
+              {justReplaced && <span className="file-replaced-badge">Reemplazado</span>}
+            </div>
             {!disabled && (
               <label className="file-replace-btn">
                 Replace
@@ -625,10 +680,18 @@ function FileUploadField({ label, fieldKey, hasFile, onUpload, uploading, disabl
   )
 }
 
-function ProgressChip({ label, done }: { label: string; done: boolean }) {
+function ProgressChip({ label, state }: { label: string; state: 'complete' | 'partial' | 'empty' | 'hidden' }) {
+  if (state === 'hidden') return null
+  
+  const getIcon = () => {
+    if (state === 'complete') return '✓'
+    if (state === 'partial') return '◐'
+    return '○'
+  }
+  
   return (
-    <div className={`prog-chip ${done ? 'prog-chip--done' : ''}`}>
-      <span>{done ? '✓' : '○'}</span>
+    <div className={`prog-chip prog-chip--${state}`}>
+      <span>{getIcon()}</span>
       {label}
     </div>
   )
@@ -658,6 +721,86 @@ function formatDate(str: string) {
     day: 'numeric', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
+}
+
+// ─── Funciones de cálculo de progreso ─────────────────────────────
+type SectionState = 'complete' | 'partial' | 'empty' | 'hidden'
+
+interface VisibleBadge {
+  key: string
+  label: string
+}
+
+function calculateSectionStates(
+  form: FormState,
+  surgery: SurgeryRecord,
+  isByPlane: boolean,
+  hasCompanion: boolean
+): Record<string, SectionState> {
+  const states: Record<string, SectionState> = {}
+
+  // Patient ID - siempre visible
+  states['patient_id'] = surgery.has_patient_id ? 'complete' : 'empty'
+
+  // Labs - siempre visible
+  states['labs'] = surgery.has_lab_results ? 'complete' : 'empty'
+
+  // Arrival Flight - solo visible si es by plane
+  if (!isByPlane) {
+    states['arrival_flight'] = 'hidden'
+  } else {
+    const hasFile = surgery.has_flight_details_arrival
+    const filled = !!(form.airline && form.flight_number && form.arrival_date_time)
+    states['arrival_flight'] = hasFile ? 'complete' : (filled ? 'partial' : 'empty')
+  }
+
+  // Departure Flight - solo visible si es by plane
+  if (!isByPlane) {
+    states['departure_flight'] = 'hidden'
+  } else {
+    const hasFile = surgery.has_flight_details_departure
+    const filled = !!(form.airline_departure && form.flight_number_departure && form.departure_date_time)
+    states['departure_flight'] = hasFile ? 'complete' : (filled ? 'partial' : 'empty')
+  }
+
+  // Companion ID - solo visible si hay companion
+  if (!hasCompanion) {
+    states['companion_id'] = 'hidden'
+  } else {
+    states['companion_id'] = surgery.has_companion_id ? 'complete' : 'empty'
+  }
+
+  return states
+}
+
+function getVisibleBadges(isByPlane: boolean, hasCompanion: boolean): VisibleBadge[] {
+  const badges: VisibleBadge[] = [
+    { key: 'patient_id', label: 'Patient ID' },
+    { key: 'labs', label: 'Labs' },
+  ]
+
+  if (isByPlane) {
+    badges.push(
+      { key: 'arrival_flight', label: 'Arrival Flight' },
+      { key: 'departure_flight', label: 'Departure Flight' }
+    )
+  }
+
+  if (hasCompanion) {
+    badges.push({ key: 'companion_id', label: 'Companion ID' })
+  }
+
+  return badges
+}
+
+function calculateProgressPercent(sectionStates: Record<string, SectionState>): number {
+  const states = Object.values(sectionStates).filter(s => s !== 'hidden')
+  if (states.length === 0) return 0
+
+  const complete = states.filter(s => s === 'complete').length
+  const partial = states.filter(s => s === 'partial').length
+
+  return Math.round(((complete + partial * 0.5) / states.length) * 100)
 }
 
 // ─── Styles ───────────────────────────────────────────────────────
@@ -741,7 +884,7 @@ const itinStyles = `
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    margin-bottom: 32px;
+    margin-bottom: 16px;
   }
 
   .prog-chip {
@@ -749,18 +892,61 @@ const itinStyles = `
     align-items: center;
     gap: 7px;
     font-size: 12px;
-    color: rgba(255,255,255,0.35);
-    background: rgba(255,255,255,0.03);
-    border: 1px solid rgba(255,255,255,0.07);
     border-radius: 20px;
     padding: 6px 14px;
     transition: all 0.2s;
   }
 
-  .prog-chip--done {
+  .prog-chip--empty {
+    color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .prog-chip--partial {
+    color: #f97316;
+    background: rgba(249,115,22,0.06);
+    border: 1px solid rgba(249,115,22,0.15);
+  }
+
+  .prog-chip--complete {
     color: #4ade80;
     background: rgba(74,222,128,0.06);
-    border-color: rgba(74,222,128,0.15);
+    border: 1px solid rgba(74,222,128,0.15);
+  }
+
+  .prog-chip--hidden {
+    display: none;
+  }
+
+  /* Progress bar */
+  .progress-bar-container {
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .progress-bar-track {
+    flex: 1;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #0c63df, #00c4cc);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-bar-text {
+    font-size: 12px;
+    color: rgba(255,255,255,0.5);
+    min-width: 80px;
+    text-align: right;
   }
 
   /* Form sections */
@@ -835,7 +1021,7 @@ const itinStyles = `
 
   .field-input:focus { border-color: rgba(0,196,204,0.4); }
   .field-input:disabled { opacity: 0.4; cursor: not-allowed; }
-  .field-select { appearance: none; cursor: pointer; }
+  .field-select { background: rgb(26, 35, 54); color: white; cursor: pointer; }
   .field-input::placeholder { color: rgba(255,255,255,0.2); }
 
   /* Radio group */
@@ -888,13 +1074,52 @@ const itinStyles = `
   .file-done {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
     gap: 10px;
     font-size: 13px;
     color: #4ade80;
   }
 
-  .file-done-icon { font-size: 16px; }
+  .file-done-icon { 
+    font-size: 16px; 
+    flex-shrink: 0;
+  }
+
+  .file-done-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .file-done-name {
+    font-size: 13px;
+    color: #4ade80;
+    word-break: break-all;
+    max-width: 300px;
+  }
+
+  .file-replaced-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #f97316;
+    background: rgba(249,115,22,0.2);
+    border: 1px solid rgba(249,115,22,0.3);
+    border-radius: 12px;
+    padding: 3px 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+    animation: pulse-orange 2s ease-in-out;
+  }
+
+  @keyframes pulse-orange {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
 
   .file-replace-btn, .file-upload-label {
     display: inline-flex;
@@ -907,7 +1132,7 @@ const itinStyles = `
     padding: 6px 12px;
     cursor: pointer;
     transition: all 0.15s;
-    margin-left: 8px;
+    flex-shrink: 0;
   }
 
   .file-replace-btn:hover, .file-upload-label:hover {
