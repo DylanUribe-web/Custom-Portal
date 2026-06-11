@@ -218,11 +218,11 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Secciones de información estática / semi-dinámica ── */}
-      {!hideSurgeryContent && patient.surgery_date && !quoteAfterSurgery && <ItinerarySection patient={patient} />}
-      {!hideSurgeryContent && <SurgeryIncludes />}
-      {!hideSurgeryContent && <PaymentOptions />}
-      {!hideSurgeryContent && <RecoveryPlan patient={patient} latestQuote={latestQuote} />}
-      {!hideSurgeryContent && <Recommendations />}
+      {patient.surgery_date && !quoteAfterSurgery && <ItinerarySection patient={patient} />}
+      <SurgeryIncludes />
+      <PaymentOptions />
+      <RecoveryPlan patient={patient} latestQuote={latestQuote} />
+      <Recommendations />
 
       <style>{dashStyles}</style>
     </div>
