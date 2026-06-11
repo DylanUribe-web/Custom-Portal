@@ -57,7 +57,8 @@ export default function DashboardPage() {
   const hasSurgicalDeposit = depositPct >= 0.30   // 30%+
   const stageIdx          = getStageIndex(patient.lead_stage, patient.deal_stage, patient.deal_id, patient.surgery_date, latestQuote, hasAnyDeposit)
   const pStatus           = getPatientStatus(patient.lead_stage, patient.deal_stage, patient.converted)
-  const daysLeft          = getDaysUntil(patient.surgery_date)
+  const surgeryCountdown  = getSurgeryCountdown(patient.surgery_date)
+  const quoteAfterSurgery = latestQuote ? isQuoteAfterSurgery(latestQuote.created_time, patient.surgery_date) : false
 
 
   return (
@@ -87,18 +88,41 @@ export default function DashboardPage() {
       )}
 
       {/* Countdown */}
-      {daysLeft !== null && patient.surgery_date && (
+      {surgeryCountdown && patient.surgery_date && surgeryCountdown.kind !== 'completed' && (
         <div className="countdown-card">
           <div className="countdown-inner">
             <div>
-              <p className="countdown-label">Days until your surgery</p>
-              <p className="countdown-num">{daysLeft}</p>
-              <p className="countdown-sub">{daysLeft === 0 ? 'It is today!' : daysLeft === 1 ? 'tomorrow' : 'days remaining'}</p>
+              <p className="countdown-label">
+                {surgeryCountdown.kind === 'today' ? 'Surgery day' : 'Days until your surgery'}
+              </p>
+              <p className="countdown-num">{surgeryCountdown.days}</p>
+              <p className="countdown-sub">
+                {surgeryCountdown.kind === 'today'
+                  ? 'It is today!'
+                  : surgeryCountdown.days === 1
+                    ? 'tomorrow'
+                    : 'days remaining'}
+              </p>
             </div>
             <div className="countdown-bar-wrap">
               <div className="countdown-bar">
-                <div className="countdown-fill" style={{ width: `${Math.max(5, 100 - (daysLeft / 90) * 100)}%` }} />
+                <div
+                  className="countdown-fill"
+                  style={{ width: `${Math.max(5, Math.min(100, 100 - (surgeryCountdown.days / 90) * 100))}%` }}
+                />
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {surgeryCountdown && patient.surgery_date && surgeryCountdown.kind === 'completed' && (
+        <div className="countdown-card">
+          <div className="countdown-inner">
+            <div>
+              <p className="countdown-label">Surgery complete</p>
+              <p className="countdown-num">🎉</p>
+              <p className="countdown-sub">Congratulations! We hope the best, we are here for you, and thank you for being part of us.</p>
             </div>
           </div>
         </div>
@@ -523,10 +547,15 @@ function getStageIndex(
     if (dealStage === 'Closed Won')                             return 5
     if (dealStage === 'Surgery Scheduled')                      return 4
     if (surgeryDate && getDaysUntil(surgeryDate) !== null && getDaysUntil(surgeryDate)! >= 0) return 4
+    if (surgeryDate && getDaysUntil(surgeryDate)! < 0 && !isQuoteAfterSurgery(latestQuote?.created_time ?? null, surgeryDate)) return 5
     // Confirmed solo cuando hay depósito, sin importar el monto
     if (hasAnyDeposit)                                          return 3
     // Deal existe pero sin depósito → Review
     return 2
+  }
+
+  if (surgeryDate && getDaysUntil(surgeryDate) !== null && getDaysUntil(surgeryDate)! < 0 && !isQuoteAfterSurgery(latestQuote?.created_time ?? null, surgeryDate)) {
+    return 5
   }
 
   // Sin Deal — usa lead stage y quote stage
@@ -542,6 +571,15 @@ function getStageIndex(
     'Deposit Secured': 3, 'Deposit Ready': 3,
   }
   return leadMap[leadStage ?? ''] ?? 0
+}
+
+function isQuoteAfterSurgery(quoteCreatedTime: string | null, surgeryDate: string | null): boolean {
+  if (!quoteCreatedTime || !surgeryDate) return false
+  const quoteDate = new Date(quoteCreatedTime)
+  const surgery   = new Date(surgeryDate)
+  quoteDate.setHours(0, 0, 0, 0)
+  surgery.setHours(0, 0, 0, 0)
+  return quoteDate.getTime() > surgery.getTime()
 }
 
 function getPatientStatus(
@@ -565,6 +603,24 @@ function getDaysUntil(dateStr: string | null): number | null {
   today.setHours(0, 0, 0, 0)
   target.setHours(0, 0, 0, 0)
   return Math.round((target.getTime() - today.getTime()) / 86400000)
+}
+
+type SurgeryCountdown =
+  | { kind: 'upcoming'; days: number }
+  | { kind: 'today'; days: 0 }
+  | { kind: 'completed'; days: 0 }
+
+function getSurgeryCountdown(dateStr: string | null): SurgeryCountdown | null {
+  if (!dateStr) return null
+  const target = new Date(dateStr)
+  const today  = new Date()
+  today.setHours(0, 0, 0, 0)
+  target.setHours(0, 0, 0, 0)
+  const diff = Math.round((target.getTime() - today.getTime()) / 86400000)
+
+  if (diff < 0) return { kind: 'completed', days: 0 }
+  if (diff === 0) return { kind: 'today', days: 0 }
+  return { kind: 'upcoming', days: diff }
 }
 
 function formatDate(str: string): string {
