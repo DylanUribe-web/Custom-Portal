@@ -547,7 +547,17 @@ function getStageIndex(
     if (dealStage === 'Closed Won')                             return 5
     if (dealStage === 'Surgery Scheduled')                      return 4
     if (surgeryDate && getDaysUntil(surgeryDate) !== null && getDaysUntil(surgeryDate)! >= 0) return 4
+    
+    // Si cirugía pasada y NO hay quote post-cirugía → mantener en Surgery
     if (surgeryDate && getDaysUntil(surgeryDate)! < 0 && !isQuoteAfterSurgery(latestQuote?.created_time ?? null, surgeryDate)) return 5
+    
+    // Si hay quote post-cirugía → reiniciar timeline basada en esa quote
+    if (surgeryDate && getDaysUntil(surgeryDate)! < 0 && isQuoteAfterSurgery(latestQuote?.created_time ?? null, surgeryDate) && latestQuote) {
+      if (['Deposit Paid', 'Approved'].includes(latestQuote.quote_stage)) return 2
+      if (['Sent', 'Follow-up'].includes(latestQuote.quote_stage)) return 1
+      return 1
+    }
+    
     // Confirmed solo cuando hay depósito, sin importar el monto
     if (hasAnyDeposit)                                          return 3
     // Deal existe pero sin depósito → Review
