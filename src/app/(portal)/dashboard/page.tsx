@@ -43,6 +43,27 @@ export default function DashboardPage() {
       .finally(() => setLoading(false))
   }, [])
 
+  // Auto-refresh datos cada 30 segundos para detectar nuevas quotes post-cirugía
+  useEffect(() => {
+    const interval = setInterval(() => {
+      Promise.all([
+        fetch('/api/zoho/patient').then((r) => r.ok ? r.json() : null).catch(() => null),
+        fetch('/api/zoho/financial').then((r) => r.ok ? r.json() : null).catch(() => null),
+      ])
+        .then(([patientData, financialData]) => {
+          if (patientData) {
+            setData({
+              patient: patientData.patient,
+              quotes: patientData.quotes ?? [],
+              financial: financialData,
+            })
+          }
+        })
+        .catch(() => {})
+    }, 30000)
+    return () => clearInterval(interval)
+  }, [])
+
   if (loading) return <Skeleton />
   if (error)   return <ErrorState msg={error} />
   if (!data)   return null
@@ -59,6 +80,9 @@ export default function DashboardPage() {
   const pStatus           = getPatientStatus(patient.lead_stage, patient.deal_stage, patient.converted)
   const surgeryCountdown  = getSurgeryCountdown(patient.surgery_date)
   const quoteAfterSurgery = latestQuote ? isQuoteAfterSurgery(latestQuote.created_time, patient.surgery_date) : false
+  const surgeryCompleted  = patient.surgery_date && getDaysUntil(patient.surgery_date) !== null && getDaysUntil(patient.surgery_date)! < 0
+  const isLegacyClosedLost = pStatus === 'closed_lost' && !quoteAfterSurgery
+  const hideSurgeryContent = surgeryCompleted || isLegacyClosedLost
 
 
   return (
@@ -83,7 +107,7 @@ export default function DashboardPage() {
       {pStatus === 'inactive' && (
         <div className="banner banner--info">ℹ To reactivate your inquiry, please contact our team.</div>
       )}
-      {pStatus === 'closed_lost' && (
+      {pStatus === 'closed_lost' && !hideSurgeryContent && (
         <div className="banner banner--info">ℹ Your file is closed. Please contact us to resume the process.</div>
       )}
 
@@ -116,7 +140,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {surgeryCountdown && patient.surgery_date && surgeryCountdown.kind === 'completed' && (
+      {surgeryCountdown && patient.surgery_date && surgeryCountdown.kind === 'completed' && !quoteAfterSurgery && !hideSurgeryContent && (
         <div className="countdown-card">
           <div className="countdown-inner">
             <div>
@@ -194,11 +218,11 @@ export default function DashboardPage() {
       </div>
 
       {/* ── Secciones de información estática / semi-dinámica ── */}
-      {patient.surgery_date && <ItinerarySection patient={patient} />} {/* Solo muestra el itinerario si ya hay fecha de cirugía */}
-      <SurgeryIncludes />
-      <PaymentOptions />
-      <RecoveryPlan patient={patient} latestQuote={latestQuote} />
-      <Recommendations />
+      {!hideSurgeryContent && patient.surgery_date && !quoteAfterSurgery && <ItinerarySection patient={patient} />}
+      {!hideSurgeryContent && <SurgeryIncludes />}
+      {!hideSurgeryContent && <PaymentOptions />}
+      {!hideSurgeryContent && <RecoveryPlan patient={patient} latestQuote={latestQuote} />}
+      {!hideSurgeryContent && <Recommendations />}
 
       <style>{dashStyles}</style>
     </div>
