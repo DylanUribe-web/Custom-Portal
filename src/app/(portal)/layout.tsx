@@ -24,22 +24,43 @@ const portalStyles = `
   .portal-root {
     display: flex;
     min-height: 100vh;
+    width: 100%;
     background: #060f24;
     font-family: var(--font-dm-sans, 'DM Sans', sans-serif);
+    align-items: flex-start;
+  }
+
+  .portal-root .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    align-self: flex-start;
+    z-index: 2;
   }
 
   .portal-main {
     flex: 1;
-    margin-left: 240px;
     padding: 36px 40px;
     min-height: 100vh;
     overflow-x: hidden;
   }
 
   @media (max-width: 768px) {
+    .portal-root {
+      flex-direction: column;
+    }
+
+    .portal-root .sidebar {
+      position: relative;
+      top: auto;
+      height: auto;
+      width: 100%;
+      align-self: stretch;
+    }
+
     .portal-main {
       margin-left: 0;
-      padding: 80px 20px 24px;
+      padding: 120px 20px 24px;
     }
   }
 `

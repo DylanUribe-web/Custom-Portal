@@ -71,8 +71,8 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
 
 const sidebarStyles = `
   .sidebar {
-    position: fixed;
-    left: 0; top: 0; bottom: 0;
+    position: sticky;
+    top: 0;
     width: 240px;
     background: #020c1f;
     border-right: 1px solid rgba(255,255,255,0.05);
@@ -80,6 +80,7 @@ const sidebarStyles = `
     flex-direction: column;
     padding: 24px 0;
     z-index: 100;
+    height: stretch;
   }
 
   .sidebar-logo {
