@@ -53,9 +53,10 @@ body {
 .footer-top {
   display: grid;
   gap: 32px;
-  grid-template-columns: 1.6fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   max-width: 1200px;
   margin: 0 auto;
+  justify-items: center;
 }
 
 .footer-brand {
