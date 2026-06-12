@@ -40,20 +40,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="footer-links-group">
               <div>
                 <h3>Patient Guide</h3>
-                <ul>
-                  <li><a href="https://hospitalcer.com/our-hospital">{" > "}About CER Hospital</a></li>
-                  <li><a href="https://hospitalcer.com/our-hospital/hospital-services">{" > "}Hospital Services</a></li>
-                  <li><a href="https://hospitalcer.com/financing">{" > "}Financing Options</a></li>
-                  <li><a href="https://hospitalcer.com/our-hospital/patient-care">{" > "}Patient Care</a></li>
-                  <li><a href="https://hospitalcer.com/blog">{" > "}Healthcare Blog</a></li>
+                <ul className="footer-links">
+                  <li><a href="https://hospitalcer.com/our-hospital">About CER Hospital</a></li>
+                  <li><a href="https://hospitalcer.com/our-hospital/hospital-services">Hospital Services</a></li>
+                  <li><a href="https://hospitalcer.com/financing">Financing Options</a></li>
+                  <li><a href="https://hospitalcer.com/our-hospital/patient-care">Patient Care</a></li>
+                  <li><a href="https://hospitalcer.com/blog">Healthcare Blog</a></li>
                 </ul>
               </div>
               <div>
                 <h3>Specialties</h3>
-                <ul>
-                  <li><a href="https://hospitalcer.com/bariatric-program">{" > "}Bariatric Surgery</a></li>
-                  <li><a href="https://hospitalcer.com/plastic-surgery-center">{" > "}Plastic Surgery</a></li>
-                  <li><a href="https://hospitalcer.com/blog/taxy-tijuana">{" > "}Transport</a></li>
+                <ul className="footer-links">
+                  <li><a href="https://hospitalcer.com/bariatric-program">Bariatric Surgery</a></li>
+                  <li><a href="https://hospitalcer.com/plastic-surgery-center">Plastic Surgery</a></li>
+                  <li><a href="https://hospitalcer.com/blog/taxy-tijuana">Transport</a></li>
                 </ul>
               </div>
             </div>
@@ -72,9 +72,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="footer-bottom">
             <p>© 2026 CER Hospital Tijuana. All Rights Reserved.</p>
             <div className="footer-legal">
-              <a href="https://hospitalcer.com/privacy-policy">{" > "}Privacy Policy</a>
-              <a href="https://hospitalcer.com/terms-and-conditions">{" > "}Terms & Conditions</a>
-              <a href="https://hospitalcer.com/accessibility">{" > "}Accessibility</a>
+              <a href="https://hospitalcer.com/privacy-policy">Privacy Policy</a>
+              <a href="https://hospitalcer.com/terms-and-conditions">Terms & Conditions</a>
+              <a href="https://hospitalcer.com/accessibility">Accessibility</a>
             </div>
           </div>
         </footer>
