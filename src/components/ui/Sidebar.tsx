@@ -207,7 +207,7 @@ const sidebarStyles = `
 
   .user-email {
     font-size: 11px;
-    color: rgba(255,255,255,0.35);
+    color: rgb(255, 255, 255);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

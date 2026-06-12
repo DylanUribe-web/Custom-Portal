@@ -6,53 +6,74 @@ import { createClient } from '@/lib/supabase/client'
 type Step = 'idle' | 'loading' | 'sent' | 'error'
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
-  const [step, setStep] = useState<Step>('idle')
+  const [email, setEmail]   = useState('')
+  const [step, setStep]     = useState<Step>('idle')
   const [errorMsg, setErrorMsg] = useState('')
-  const supabase = createClient()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!email.trim()) return
-
     setStep('loading')
     setErrorMsg('')
 
+    // ── Paso 1: valida email contra CRM (servidor) ────────────
+    try {
+      const checkRes = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+
+      if (!checkRes.ok) {
+        const data = await checkRes.json().catch(() => ({}))
+        setStep('error')
+        switch (data.error) {
+          case 'not_registered':
+            setErrorMsg('This email is not registered. Please contact your coordinator to get access.')
+            break
+          default:
+            setErrorMsg('Something went wrong. Please try again.')
+        }
+        return
+      }
+    } catch {
+      setStep('error')
+      setErrorMsg('Connection error. Please check your internet and try again.')
+      return
+    }
+
+    // ── Paso 2: email válido en CRM → envía OTP desde el browser ─
+    const supabase = createClient()
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim().toLowerCase(),
       options: {
         emailRedirectTo: `${window.location.origin}/api/auth/callback`,
-        shouldCreateUser: true,  // false en producción para evitar registros no autorizados
+        shouldCreateUser: true,
       },
     })
 
     if (error) {
       setStep('error')
-      setErrorMsg(
-        error.message.includes('not authorized')
-          ? 'This email address does not have access to the portal. Contact your coordinator.'
-          : 'An error occurred. Please try again.'
-      )
-    } else {
-      setStep('sent')
+      setErrorMsg('Could not send the access link. Please try again.')
+      console.error('[Login] OTP error:', error.message)
+      return
     }
+
+    setStep('sent')
   }
 
   return (
     <main className="login-root">
-      {/* Background layers */}
       <div className="login-bg" />
       <div className="login-grid" />
       <div className="login-glow" />
 
       <div className="login-wrapper">
-        {/* Logo / Marca */}
         <header className="login-header">
           <div className="cer-badge">CER</div>
           <span className="cer-label">Patient Portal</span>
         </header>
 
-        {/* Card */}
         <div className="login-card">
           {step === 'sent' ? (
             <SentState email={email} onBack={() => setStep('idle')} />
@@ -60,12 +81,12 @@ export default function LoginPage() {
             <>
               <div className="login-card-header">
                 <h1>Welcome</h1>
-                <p>Enter your email address to access your medical records and follow-up information.</p>
+                <p>Enter your email address to access your file and follow-up.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="login-form">
                 <div className="field-wrapper">
-                  <label htmlFor="email">Email Address</label>
+                  <label htmlFor="email">Email address</label>
                   <input
                     id="email"
                     type="email"
@@ -78,24 +99,20 @@ export default function LoginPage() {
                   />
                 </div>
 
-                {step === 'error' && (
-                  <p className="error-msg">{errorMsg}</p>
-                )}
+                {step === 'error' && <p className="error-msg">{errorMsg}</p>}
 
                 <button type="submit" className="login-btn" disabled={step === 'loading'}>
                   {step === 'loading' ? (
                     <span className="btn-loading">
                       <span className="spinner" />
-                      Sending...
+                      Verifying...
                     </span>
-                  ) : (
-                    'Send Access Link'
-                  )}
+                  ) : 'Send access link'}
                 </button>
               </form>
 
               <p className="login-hint">
-                We will send you a secure link. You don't need a password.
+                We will send you a secure link. No password needed.
               </p>
             </>
           )}
@@ -115,15 +132,10 @@ function SentState({ email, onBack }: { email: string; onBack: () => void }) {
   return (
     <div className="sent-state">
       <div className="sent-icon">✉</div>
-      <h2>Check Your Email</h2>
-      <p>
-        We've sent an access link to <strong>{email}</strong>.
-        The link will expire in 10 minutes.
-      </p>
-      <p className="sent-hint">Didn't receive it? Check your spam folder.</p>
-      <button onClick={onBack} className="back-btn">
-        Use a Different Email
-      </button>
+      <h2>Check your email</h2>
+      <p>We sent an access link to <strong>{email}</strong>. The link expires in 10 minutes.</p>
+      <p className="sent-hint">Don't see it? Check your spam folder.</p>
+      <button onClick={onBack} className="back-btn">Use a different email</button>
     </div>
   )
 }

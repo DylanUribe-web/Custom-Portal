@@ -59,9 +59,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
             <div className="footer-contact">
               <h3>Contact Us</h3>
-              <p><strong>CER Hospital</strong><br />Av. Diego Rivera 2386, Zona Urbana Río Tijuana, 22010<br />Tijuana, B.C., Mexico</p>
-              <p><strong>US Phone:</strong> <a href="tel:+16197346820">+1 619-416-8550</a></p>
-              <p><strong>Email:</strong> <a href="mailto:info@cerhospital.com">info@cerhospital.com</a></p>
+              <p><strong>📍 CER Hospital</strong><br />Av. Diego Rivera 2386, Zona Urbana Río Tijuana, 22010<br />Tijuana, B.C., Mexico</p>
+              <p><strong>📞 US Phone:</strong> <a href="tel:+16197346820">+1 619-416-8550</a></p>
+              <p><strong>📩 Email:</strong> <a href="mailto:info@cerhospital.com">info@cerhospital.com</a></p>
             </div>
           </div>
           <div className="footer-note">
