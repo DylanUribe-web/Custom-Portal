@@ -332,6 +332,10 @@ function QuoteCard({ quote, isLatest }: { quote: PatientQuote; isLatest?: boolea
             <span>{formatUSD(quote.grand_total)}</span>
           </div>
         )}
+        {/*Formula para surgical deposit (30%)*/}
+        {quote.grand_total != null && (
+          <p className="quote-plan">Surgical deposit (30%): <strong>{formatUSD(quote.grand_total * 0.3)}</strong></p>
+        )}
       </div>
 
       {/* Noches */}
@@ -828,7 +832,7 @@ const dashStyles = `
 
   .quote-nights       { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
   .night-chip         { font-size: 12px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 20px; padding: 4px 12px; color: rgba(255,255,255,.5); }
-  .quote-valid        { font-size: 11px; color: rgba(255,255,255,.3); margin: 10px 0 0; }
+  .quote-valid        { font-size: 11px; color: rgba(255,255,255,.3); margin: 10px 0 0; text-align: right; }
 
   .show-more-btn { background: none; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; color: rgba(255,255,255,.4); font-size: 12px; padding: 8px 16px; cursor: pointer; transition: all .15s; }
   .show-more-btn:hover { border-color: rgba(0,196,204,.3); color: rgba(255,255,255,.7); }
