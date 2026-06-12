@@ -208,7 +208,7 @@ export default function ItineraryPage() {
       {/* Header */}
       <div className="itin-header">
         <div>
-          <h1 className="itin-title">Itinerario & Confirmación</h1>
+          <h1 className="itin-title">Itinerary & Confirmation</h1>
           <p className="itin-subtitle">
             Complete and update your travel and recovery information.
             You can return to this page at any time.
